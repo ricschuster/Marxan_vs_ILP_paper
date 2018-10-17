@@ -1,0 +1,355 @@
+---
+title: "Supporting Information"
+fontsize: 11pt
+documentclass: article
+subparagraph: true
+bibliography: references.bib
+csl: reference-style.csl
+output:
+  rmarkdown::pdf_document:
+    keep_tex: no
+    fig_caption: yes
+    includes:
+      in_header: preamble.tex
+---
+
+
+```{r, include=FALSE}
+knitr::opts_knit$set(root.dir = normalizePath("../.."))
+knitr::opts_chunk$set(dev = "png", dev.args = list(type = "cairo"), dpi = 500)
+```
+
+\setcounter{figure}{0}
+\setcounter{table}{0}
+\renewcommand{\thefigure}{}
+\renewcommand{\thetable}{}
+
+```{r, include = FALSE}
+## initialization
+# load session
+try(session::restore.session("data/final/results.rda"))
+
+# define convenience functions
+paste_list <- function(x) {
+  if (length(x) == 1)
+    return(x)
+  paste0(paste(x[-length(x)], collapse = ", "), ", and ", x[length(x)])
+}
+
+# load study area data
+agr_study_area_raster_data <- "data/intermediate/agr_study_area.tif" %>%
+                              raster::raster()
+agr_solution <- raster::stack("data/intermediate/agr_solution.tif")
+
+# make template for plotting maps
+map <- ggplot2::ggplot() +
+       ggplot2::theme_classic() +
+       ggplot2::coord_equal() +
+       ggplot2::theme(axis.ticks = ggplot2::element_blank(),
+                      axis.text = ggplot2::element_blank(),
+                      axis.title = ggplot2::element_blank(),
+                      axis.line = ggplot2::element_blank(),
+                      axis.ticks.length = ggplot2::unit(0, "null"),
+                      axis.ticks.margin = ggplot2::unit(0, "null"),
+                      panel.border = ggplot2::element_blank(),
+                      panel.grid = ggplot2::element_blank(),
+                      panel.margin = ggplot2::unit(c(0,0,0,0), "null"),
+                      plot.margin = ggplot2::unit(c(0, 0, 0, 0), "null"),
+                      strip.text = ggplot2::element_text(color = "white"),
+                      strip.background =
+                        ggplot2::element_rect(color = "#071E22",
+                                              fill = "#071E22"))
+```
+
+# Appendix S1
+
+The amount of data available for conservation planning has risen dramatically over the last few decades. This explosion has, in turn, enabled conservation planners to design prioritizations for increasingly fine-scale levels of biodiversity [e.g. @r42] and over larger spatial extents [e.g. @r12]. As a consequence, it is imperative that new decision support tools are capable of solving large-scale problems. Here we show that the \texttt{prioritizr R} package has much greater performance than existing decision support tools---i.e. \texttt{Marxan} and \texttt{Zonation}, the two most widely used decision support tools in conservation biology---and is capable of producing better quality solutions in a shorter period of time.
+
+We conducted a benchmark analysis to evaluate the relative performance of each decision support tool. In this analysis, we investigated the ability for different decision support tools to solve different reserve selection problems. Specifically, we examined the ability for \texttt{Marxan}, \texttt{prioritizr}, and \texttt{Zonation} to solve the minimum set reserve selection problem. We also examined the ability for \texttt{prioritizr} and \texttt{Zonation} to solve maximum coverage problems (omitting \texttt{Marxan} because its support for maximum coverage problems is experimental). We then (i) simulated various sized data sets (minimum set problem: number of features = `r formatC(dplyr::first(min_set_parameters$number_features), format = "fg", big.mark = ",")`, number of planning units = [`r paste_list(formatC(min_set_parameters$number_planning_units, format = "fg", big.mark = ","))`]; maximum coverage problem: number of features = `r dplyr::first(formatC(max_cov_parameters$number_features, format = "fg", big.mark = ","))`, number of planning units = [`r paste_list(formatC(max_cov_parameters$number_planning_units, format = "fg", big.mark = ","))`]), (ii) generated prioritizations with different tools and different settings, (iii) recorded the run times and (iv) calculated the quality of the solutions (expressed as percent difference from optimality). In the simulated data sets, all planning unit costs were set to one and the features were simulated to exhibit positive spatial auto-correlation to increase realism [using the \texttt{RandomFields R} package; @r38]. For the minimum set problems, representation targets were set to `r min_set_parameters$targets * 100` % of each species' goegraphic distribution, and for maximum coverage problems, budgets were set to `r max_cov_parameters$budget * 100` % of the total number of planning units.
+
+We conducted the benchmark analysis using various settings for different decision support tools to understand how these settings affect their performance. Specifically, we benchmarked the \texttt{prioritizr R} package using the suite of solvers it can employ to solve reserve selection problems [\texttt{Gurobi}, \texttt{lpsymphony}, and \texttt{Rsymphony}; @r41; @r39; @r40]. Additionally, since \texttt{Marxan} has parameters that control the intensity of its optimization routine, we benchmarked \texttt{Marxan} using various parameter configurations (number of iterations = [`r paste_list(formatC(min_set_parameters$marxan_iterations, format = "fg", big.mark = ","))`] and number of replicates = [`r paste_list(formatC(min_set_parameters$marxan_replicates, format = "fg", big.mark = ","))`]). Finally, because \texttt{Marxan} has additional parameters that specify the relative importance for representing each feature [termed "species penalty factors"; @r25], we ran \texttt{Marxan} using various species penalty factors for each configuration of optimization parameters (species penalty factors = [`r paste_list(formatC(min_set_parameters$marxan_spf, format = "fg", big.mark = ","))`]),  and extracted the solution that met all targets for least cost.
+
+We found that the \texttt{prioritizr R} package can deliver substantially better solutions in a faster period of time than either \texttt{Marxan} or \texttt{Zonation} (see figure below). This result adds to the growing body of evidence that exact algorithm solvers have much to offer conservation planning [@r27; @r24]. Although older studies have found only found slight increases in solution quality when using exact algorithms [e.g. @r46; @r45], these studies often used much smaller problems than those used today [e.g. @r44; @r21; @r21]. In our study, \texttt{Marxan} and \texttt{Zonation} were not able to deliver near-optimal solutions to large planning problems---returning solutions to a minimum set problem containing `r formatC(dplyr::last(min_set_parameters$number_planning_units), format = "fg", big.mark = ",")` planning units and `r formatC(dplyr::last(min_set_parameters$number_features), format = "fg", big.mark = ",")` that were over `r min_set_results %>% dplyr::filter(software %in% c("Marxan", "Zonation"), number_features == max(number_features), number_planning_units == max(number_planning_units)) %>% dplyr::summarize(min(gap)) %>% unlist()` % from optimality. In other words, these solutions squandered finite resources on over `r min_set_results %>% dplyr::filter(software %in% c("Marxan", "Zonation"), number_features == max(number_features), number_planning_units == max(number_planning_units)) %>% dplyr::summarize(min(gap_absolute)) %>% unlist() %>% formatC(format = "fg", big.mark = ",")` additional planning units that could have been better allocated to other activities. Similarly, the best solution from \texttt{Zonation} to the maximum coverage problem was `r max_cov_results %>% dplyr::filter(software == "Zonation", number_features == max(number_features), number_planning_units == max(number_planning_units)) %>% dplyr::summarize(min(gap)) %>% unlist()` % from optimality and contained `r max_cov_results %>% dplyr::filter(software == "Zonation", number_features == max(number_features), number_planning_units == max(number_planning_units)) %>% dplyr::summarize(min(gap_absolute)) %>% unlist() %>% formatC(format = "fg", big.mark = ",")` additional planning units.
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.height = 2.0, fig.width = 7, fig.cap = "Performance benchmarks. Panels show comparisons in run time for different software when solving (a) the minimum set and (b) the maximum coverage reserve selection problems."}
+# prepare data
+plot_data <- benchmark_results %>%
+             dplyr::mutate(gap = paste0(gap, "%")) %>%
+             dplyr::mutate(problem = factor(as.character(problem),
+                                            levels = unique(problem))) %>%
+             dplyr::mutate(number_planning_units =
+                             factor(number_planning_units)) %>%
+             dplyr::mutate(software_method = paste0(software, ": ", method)) %>%
+             dplyr::mutate(software_method = gsub("Zonation: ", "Zonation",
+                                                  software_method,
+                                                  fixed = TRUE))
+
+style_data <- plot_data %>%
+              dplyr::select(software, method) %>%
+              dplyr::distinct() %>%
+              dplyr::mutate(skey = as.integer(factor(software))) %>%
+              dplyr::group_by(software) %>%
+              dplyr::mutate(mkey = as.integer(factor(method))) %>%
+              dplyr::ungroup() %>%
+              dplyr::mutate(color = c("#C03221", "#545E75",
+                                      "#3F826D")[skey]) %>%
+              dplyr::mutate(linetype = c("solid", "dashed", "dotted")[mkey]) %>%
+              data.frame()
+
+# make plots
+p <- ggplot2::ggplot() +
+     ggplot2::geom_line(data = plot_data,
+                        ggplot2::aes(x = number_planning_units, y = time,
+                                     color = software_method,
+                                     linetype = software_method,
+                                     group = software_method)) +
+     ggplot2::xlab("Number of planning units") +
+     ggplot2::scale_y_log10("Run time (seconds)") +
+     ggplot2::geom_text(data = data.frame(problem = unique(plot_data$problem),
+                                          label = c("(a)", "(b)")),
+                        ggplot2::aes(label = label),
+                        x = -Inf, y = Inf, hjust = -0.1, vjust = 1) +
+     ggplot2::theme_classic() +
+     ggplot2::theme(axis.line = ggplot2::element_line(),
+                    strip.background = ggplot2::element_blank(),
+                    strip.text.x = ggplot2::element_blank()) +
+     ggplot2::scale_color_manual(values = style_data$color) +
+     ggplot2::scale_linetype_manual(values = style_data$linetype) +
+     ggplot2::facet_wrap(~ problem, ncol = 2, scales = "free")
+
+# render data
+print(p)
+```
+
+* Results paragraph 2:
+    + Gurobi is the best solver.
+    + Describe differences between Gurobi vs. free solvers.
+    + Discuss issues with Gurobi since it is a commercial software.
+    + Discuss potential strategies for using free solvers, e.g. using proportion type decisions, breaking the planning problem into multiple sub-problems.
+
+\renewcommand{\thefigure}{S\arabic{figure}}
+\renewcommand{\thetable}{S\arabic{table}}
+
+# Figures
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.height = 2.5, fig.width = 2.5, fig.cap = "Land value data used in the agricultural case-study."}
+# prepare plot data
+plot_data <- "data/intermediate/agr_land_value.tif" %>%
+              raster::raster() %>%
+              raster::as.data.frame(xy = TRUE, na.rm = TRUE) %>%
+              setNames(c("x", "y", "z"))
+
+# make plot
+p <- map +
+     ggplot2::geom_tile(data = plot_data,
+                        ggplot2::aes(x = x, y = y, fill = z)) +
+     ggplot2::coord_cartesian(xlim = range(plot_data$x),
+                              ylim = range(plot_data$y)) +
+     viridis::scale_fill_viridis() +
+     ggplot2::theme(legend.position = c(0.95, 0.95),
+                    legend.justification = c(1, 1),
+                    legend.title = ggplot2::element_blank(),
+                    legend.text = ggplot2::element_text(size = 8),
+                    legend.background = ggplot2::element_rect(fill = NA,
+                                                              color = NA))
+
+# render plot
+print(p)
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.height = 2.5, fig.width = 2.5, fig.cap = "Existing protected areas located within the bounds for the agricultural case-study."}
+# prepare plot data
+plot_data <- "data/intermediate/agr_pa.tif" %>%
+              raster::raster() %>%
+              raster::as.data.frame(xy = TRUE, na.rm = TRUE) %>%
+              setNames(c("x", "y", "z"))
+
+# make plot
+p <- map +
+     ggplot2::geom_tile(data = plot_data,
+                        ggplot2::aes(x = x, y = y, fill = z)) +
+     ggplot2::coord_cartesian(xlim = range(plot_data$x),
+                              ylim = range(plot_data$y)) +
+     viridis::scale_fill_viridis() +
+     ggplot2::theme(panel.background = ggplot2::element_rect(fill = "grey90"),
+                    legend.position = c(0.95, 0.95),
+                    legend.justification = c(1, 1),
+                    legend.title = ggplot2::element_blank(),
+                    legend.text = ggplot2::element_text(size = 8),
+                    legend.background = ggplot2::element_rect(fill = NA,
+                                                              color = NA))
+
+# render plot
+print(p)
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.height = 2.5, fig.width = 2.5, fig.cap = "Agricultural land capability for planning units within the agricultural case-study."}
+# prepare plot data
+plot_data <- "data/intermediate/agr_capable.tif" %>%
+              raster::raster() %>%
+              raster::as.data.frame(xy = TRUE, na.rm = TRUE) %>%
+              setNames(c("x", "y", "z"))
+
+# make plot
+p <- map +
+     ggplot2::geom_tile(data = plot_data,
+                        ggplot2::aes(x = x, y = y, fill = z)) +
+     ggplot2::coord_cartesian(xlim = range(plot_data$x),
+                              ylim = range(plot_data$y)) +
+     viridis::scale_fill_viridis() +
+     ggplot2::theme(panel.background = ggplot2::element_rect(fill = "grey90"),
+                    legend.position = c(0.95, 0.95),
+                    legend.justification = c(1, 1),
+                    legend.title = ggplot2::element_blank(),
+                    legend.text = ggplot2::element_text(size = 8),
+                    legend.background = ggplot2::element_rect(fill = NA,
+                                                              color = NA))
+
+# render plot
+print(p)
+```
+
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.height = 2.5, fig.width = 2.5, fig.cap = "Distribution of planning units that can be restored to different vegetation classes."}
+# prepare plot data
+plot_data <- "data/intermediate/agr_restorable.tif" %>%
+              raster::stack() %>%
+              `names<-`(names(agr_case_study_parameters$vegetation_class)) %>%
+              raster::as.data.frame(xy = TRUE, na.rm = FALSE) %>%
+              dplyr::select(-native_grass) %>%
+              tidyr::gather(land_use, status, -x, -y) %>%
+              dplyr::mutate(status = dplyr::case_when(
+                .$status < 0.5 ~ "not applicable",
+                .$status > 0.5 ~ "restorable")) %>%
+             dplyr::mutate(land_use = gsub("_", " ", land_use, fixed = TRUE))
+
+
+# make plot
+p <- plyr::dlply(plot_data, "land_use", function(x) {
+  map +
+  ggplot2::geom_tile(data = x,
+                     ggplot2::aes(x = x, y = y, fill = status)) +
+   ggplot2::facet_wrap(~ land_use) +
+   ggplot2::coord_cartesian(xlim = range(plot_data$x),
+                            ylim = range(plot_data$y)) +
+   ggplot2::theme(panel.background = ggplot2::element_rect(fill = "grey90"),
+                  plot.margin = ggplot2::unit(rep(1, 4), "mm"),
+                  legend.position = if (x$land_use[1] !=
+                                        dplyr::last(plot_data$land_use)) {
+                                        "none"} else {c(0.95, 0.95)},
+                  legend.justification = c(1, 1),
+                  legend.title = ggplot2::element_blank(),
+                  legend.text = ggplot2::element_text(size = 8),
+                  legend.background = ggplot2::element_rect(fill = NA,
+                                                            color = NA)) +
+    ggplot2::scale_fill_manual(values = c("not applicable" = "white",
+                                          "restorable" = "#4daf4a"),
+                               na.translate = FALSE)
+})
+
+# render plot
+do.call(gridExtra::grid.arrange, p)
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.height = 4.5, fig.width = 4.5, fig.cap = "Management cost data. Each panel corresponds to the cost for managing planning units under a different land use category. To account for contemporary land use, the cost for planning units under a given land use were set to zero if they were recorded as being managed under that land use in the Canada Land Inventory 2017 data set. To account for the fact that some vegetation classes can only be restored in certain areas, the costs for planning units that are not restorable for a given vegetation class were set to missing values. Finally, costs for urban and agricultural land uses were set to missing values for planning units inside existing protected areas."}
+# prepare plot data
+plot_data <- "data/intermediate/agr_pu_cost.tif" %>%
+              raster::stack() %>%
+              `names<-`(names(agr_solution)) %>%
+              raster::as.data.frame(xy = TRUE, na.rm = FALSE) %>%
+              dplyr::mutate(cell = seq_along(x)) %>%
+              tidyr::gather(land_use, cost, -x, -y, -cell) %>%
+              dplyr::mutate(land_use = gsub("_", " ", land_use,
+                            fixed = TRUE)) %>%
+              dplyr::mutate(land_use = factor(land_use,
+                                              gsub("_", " ", fixed = TRUE,
+                                                   names(agr_solution[[1]]))))
+
+# assign color values
+cells_not_in_study_area <- raster::Which(is.na(agr_study_area_raster_data),
+                                         cells = TRUE)
+cells_in_study_area <- raster::Which(!is.na(agr_study_area_raster_data),
+                                     cells = TRUE)
+finite_rows <- which((plot_data$cell %in% cells_in_study_area) &
+                     (plot_data$cost >= 1e-10))
+plot_data$color[plot_data$cell %in% cells_not_in_study_area] <- "#E5E5E5"
+plot_data$color[(plot_data$cell %in% cells_in_study_area) &
+                is.na(plot_data$cost)] <- "#333333"
+plot_data$color[(plot_data$cell %in% cells_in_study_area) &
+                (plot_data$cost < 1e-10)] <- "#006400"
+plot_data$color[finite_rows] <- rgb(colorRamp(viridis::viridis(100))(
+                                  scales::rescale(plot_data$cost[finite_rows])),
+                                  maxColorValue = 256)
+
+# make plot
+p <- plyr::dlply(plot_data, "land_use", function(x) {
+  map +
+  ggplot2::geom_tile(data = x,
+                     ggplot2::aes(x = x, y = y, fill = color)) +
+   ggplot2::facet_wrap(~ land_use) +
+   ggplot2::coord_cartesian(xlim = range(plot_data$x),
+                            ylim = range(plot_data$y)) +
+   ggplot2::scale_fill_identity() +
+   ggplot2::theme(panel.background = ggplot2::element_rect(fill = "grey90"),
+                  plot.margin = ggplot2::unit(rep(1, 4), "mm"),
+                  legend.position = "none",
+                  legend.justification = c(1, 1),
+                  legend.title = ggplot2::element_blank(),
+                  legend.text = ggplot2::element_text(size = 8),
+                  legend.background = ggplot2::element_rect(fill = NA,
+                                                            color = NA))
+})
+
+# render plot
+do.call(gridExtra::grid.arrange, p)
+```
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.height = 4.5, fig.width = 4.5, fig.cap = "The proportion of the agricultural study area that were managed according to different land uses. Each panel corresponds to a different land use class. Points show data derived from the Canada Land Inventory 2017 data set, and black lines show predictions for the different land use classes over time. Blue dashed lines show targets used for generating the prioritization."}
+agr_time_series_data %>%
+dplyr::filter(land_use != "other") %>%
+dplyr::mutate(land_use = gsub("_", " ", land_use, fixed = TRUE)) %>%
+dplyr::mutate(land_use = dplyr::case_when(
+               .$land_use == "misc" ~ "miscellaneous",
+               TRUE ~ .$land_use)) %>%
+ggplot2::ggplot(ggplot2::aes(x = year, y = prop_area)) +
+ggplot2::geom_point() +
+ggplot2::geom_line(data = agr_forecast_data %>%
+                          dplyr::mutate(land_use = gsub("_", " ",
+                                                        land_use,
+                                                        fixed = TRUE)) %>%
+                          dplyr::mutate(land_use = dplyr::case_when(
+                                         .$land_use == "misc" ~ "miscellaneous",
+                                         TRUE ~ .$land_use)),
+                   color = "black") +
+ggplot2::geom_hline(data = agr_targets %>%
+                           dplyr::rename(land_use = feature) %>%
+                           dplyr::mutate(
+                             land_use = gsub("_", " ", land_use,
+                                             fixed = TRUE)) %>%
+                           dplyr::mutate(land_use = dplyr::case_when(
+                                         .$land_use == "misc" ~ "miscellaneous",
+                                         TRUE ~ .$land_use)),
+                    ggplot2::aes(yintercept = prop_target),
+                                 color = "#3366FF",
+                                 linetype = "dashed") +
+ggplot2::facet_wrap(~ land_use) +
+ggplot2::scale_y_continuous(name = "Proportion of study area (%)",
+                            labels = function(x) x * 100,
+                            c(0, 0.2, 0.4, 0.6, 0.8)) +
+ggplot2::scale_x_continuous(name = "Year",
+                            breaks = unique(round(agr_forecast_data$year))) +
+ggplot2::theme(strip.text = ggplot2::element_text(color = "white"),
+               strip.background = ggplot2::element_rect(color = "#071E22",
+                                                        fill = "#071E22"))
+```
+
+# Tables
+
+```{r}
+marxan_feature_data %>%
+write.table("article/table_S1.csv", row.names = FALSE, sep = ",")
+```
+
+# References
+
+\bibliography{references}
