@@ -101,7 +101,7 @@ min_set_marxan_results <- plyr::ddply(
     curr_opts@NUMREPS <- as.integer(min_set_parameters$marxan_replicates[j])
     curr_opts@NUMITNS <- as.integer(min_set_parameters$marxan_iterations[j])
     if (curr_opts@NUMTEMP > curr_opts@NUMITNS)
-      curr_opts@NUMTEMP <- as.integer(max(floor(curr_opts@NUMITNS * 0.2), 1))
+      curr_opts@s <- as.integer(max(floor(curr_opts@NUMITNS * 0.2), 1))
     # prepare marxan data
     curr_pu <- data.frame(
       id = seq_len(min_set_parameters$number_planning_units[i]),
