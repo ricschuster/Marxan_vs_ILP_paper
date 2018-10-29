@@ -92,6 +92,11 @@ s_marxan <- data_frame(n_iterations = marxan_iterations,
          cost_min = map_dbl(solution, ~ min(.$result$Cost)),
          pct_above_optimal = cost_min / cost_optimal - 1,
          time = map_dbl(solution, ~ .$time["elapsed"]))
+saveRDS(s_marxan, "output/01_marxan-runs_time-vs-iterations.rds")
+
+
+# plots ----
+
 # plot cost
 g <- ggplot(s_marxan) +
   aes(x = n_iterations, y = pct_above_optimal) +
@@ -103,7 +108,7 @@ g <- ggplot(s_marxan) +
   labs(x = "# Marxan iterations",
        y = paste0("Cost (% above optimal cost = ", 
                   scales::dollar(cost_optimal), ")"))
-ggsave("figures/cost-vs-iterations.png", g, width = 6, height = 6)
+ggsave("figures/01_cost-vs-iterations.png", g, width = 6, height = 6)
 # plot execution time
 g <- ggplot(s_marxan) +
   aes(x = n_iterations, y = time / 60) +
@@ -121,4 +126,4 @@ g <- ggplot(s_marxan) +
        color = "Solver",
        fill = "% above optimal cost") +
   theme(legend.position = "bottom")
-ggsave("figures/time-vs-iterations.png", g, width = 6, height = 6)
+ggsave("figures/01_time-vs-iterations.png", g, width = 6, height = 6)
