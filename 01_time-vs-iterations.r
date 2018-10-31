@@ -54,27 +54,7 @@ ilp_times <- data_frame(
 m_opts <- MarxanOpts(BLM = 0, NCORES = 1L)
 m_opts@NUMREPS <- as.integer(marxan_reps)
 # data
-included <- Which(!is.na(cost), cells = TRUE)
-m_pu <- data.frame(id = included,
-                   cost = cost[included],
-                   status = 0L) %>% 
-  filter(!is.na(cost))
-total_rep <- unname(cellStats(features, sum, asSample = FALSE))
-m_species <- data.frame(id = seq_len(nlayers(features)),
-                        target = target * total_rep,
-                        spf = 10,
-                        name = names(features),
-                        stringsAsFactors = FALSE)
-m_puvspecies <- features[included] %>% 
-  as.data.frame() %>% 
-  set_names(seq_len(ncol(.))) %>% 
-  mutate(pu = included) %>% 
-  gather(species, amount, -pu, convert = TRUE) %>% 
-  select(species, pu, amount) %>% 
-  arrange(pu, species)
-m_data <- MarxanData(pu = m_pu, species = m_species, 
-                     puvspecies = m_puvspecies,
-                     boundary = NULL)
+m_data <- prepare_marxan_data(cost, features, target = target, spf = 10)
 m_unsolved <- MarxanUnsolved(opts = m_opts, data = m_data)
 # solve
 solve_marxan <- function(x, problem) {
