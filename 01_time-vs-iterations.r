@@ -1,7 +1,6 @@
 library(raster)
 library(prioritizr)
 library(marxan)
-library(timethis) # devtools::install_github("mstrimas/timethis)
 library(tidyverse)
 walk(list.files("R", full.names = TRUE), source)
 select <- dplyr::select
@@ -74,7 +73,7 @@ s_marxan <- data_frame(n_iterations = marxan_iterations,
          time = map_dbl(solution, ~ .$time["elapsed"]))
 saveRDS(s_marxan, "output/01_marxan-runs_time-vs-iterations.rds")
 
-
+s_marxan <- readRDS("output/01_marxan-runs_time-vs-iterations.rds")
 # plots ----
 
 # plot cost
@@ -88,7 +87,8 @@ g <- ggplot(s_marxan) +
   labs(x = "# Marxan iterations",
        y = paste0("Cost (% above optimal cost = ", 
                   scales::dollar(cost_optimal), ")"))
-ggsave("figures/01_cost-vs-iterations.png", g, width = 6, height = 6)
+ggsave("figures/01_cost-vs-iterations.png", g, width = 8, height = 6)
+
 # plot execution time
 g <- ggplot(s_marxan) +
   aes(x = n_iterations, y = time / 60) +
@@ -106,4 +106,4 @@ g <- ggplot(s_marxan) +
        color = "Solver",
        fill = "% above optimal cost") +
   theme(legend.position = "bottom")
-ggsave("figures/01_time-vs-iterations.png", g, width = 6, height = 6)
+ggsave("figures/01_time-vs-iterations.png", g, width = 8, height = 6)
