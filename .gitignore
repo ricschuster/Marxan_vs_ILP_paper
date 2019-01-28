@@ -2,3 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
+data/nplcc/
+data/cdf/
+data/nplcc_cost_occupancy.rds
