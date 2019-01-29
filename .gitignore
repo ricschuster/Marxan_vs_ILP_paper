@@ -8,3 +8,4 @@ data/nplcc_cost_occupancy.rds
 output/gurobi/
 output/rsymphony/
 output/marxan/
+output/runs/

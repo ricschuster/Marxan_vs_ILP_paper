@@ -72,11 +72,17 @@ marxan_path <- here("marxan", "MarOpt_v243_Mac64")
 
 # clean up old files
 gurobi_dir <- here("output", "gurobi")
-list.files(gurobi_dir, full.names = TRUE) %>% unlink()
+unlink(gurobi_dir, recursive = TRUE)
+dir.create(gurobi_dir)
 rsymphony_dir <- here("output", "rsymphony")
-list.files(rsymphony_dir, full.names = TRUE) %>% unlink()
+unlink(rsymphony_dir, recursive = TRUE)
+dir.create(rsymphony_dir)
 marxan_dir <- here("output", "marxan")
-list.files(marxan_dir, full.names = TRUE) %>% unlink()
+unlink(marxan_dir, recursive = TRUE)
+dir.create(marxan_dir)
+runs_dir <- here("output", "runs")
+unlink(runs_dir, recursive = TRUE)
+dir.create(runs_dir)
 
 set.seed(1)
 runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
@@ -151,10 +157,10 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
     r_marxan <- r$marxan[[1]][i_marxan, , drop = FALSE]
     message(paste("  Marxan:", r_marxan$marxan_iterations, "iterations"))
     # options
-    m_opts <- MarxanOpts(BLM = 0, NCORES = 1L)
+    m_opts <- MarxanOpts(BLM = 0, NCORES = 1L, VERBOSITY = 3L)
     m_opts@NUMREPS <- as.integer(marxan_reps)
     m_opts@NUMITNS <- as.integer(r_marxan$marxan_iterations)
-    m_opts@NUMTEMP <- as.integer(ceiling(m_opts@NUMITNS * 0.2))  
+    m_opts@NUMTEMP <- as.integer(ceiling(m_opts@NUMITNS * 0.2))
     m_unsolved <- MarxanUnsolved(opts = m_opts, data = m_data)
     # solve
     td <- file.path(tempdir(), "marxan-run")
@@ -195,6 +201,12 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
     r_marxan
   }
   r$marxan <- list(r_marxan)
+  # save this iteration in case of crashing
+  "target-{target}_features-{n_features}_pu-{n_pu}.rds" %>% 
+    str_glue_data(r, .) %>% 
+    paste0("run-", i, .) %>% 
+    file.path(runs_dir, .) %>% 
+    saveRDS(r, .)
   r
 }
 
