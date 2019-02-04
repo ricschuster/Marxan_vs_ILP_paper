@@ -16,13 +16,15 @@ species <- here("data", "nplcc_species.csv") %>%
   mutate(id = as.integer(id))
 
 # cost and occupancy
-nplcc_file <- here("data", "nplcc_cost_occupancy.rds")
+nplcc_file <- here("data", "nplcc_cost_occupancy.zip")
 if (!file.exists(nplcc_file)) {
-  "https://s3.amazonaws.com/marxan-vs-ilp/nplcc_cost_occupancy.rds" %>% 
+  "https://s3.amazonaws.com/marxan-vs-ilp/nplcc_cost_occupancy.zip" %>% 
     download.file(destfile = nplcc_file)
 }
-cost_occ <- readRDS(nplcc_file) %>% 
-  mutate(pu = as.integer(pu))
+cost_occ <- read_csv(nplcc_file, 
+                     col_types = cols(.default = col_double(),
+                                      pu = col_integer()))
+
 # split out cost and occupancy
 cost <- select(cost_occ, id = pu, cost) %>% 
   arrange(id)

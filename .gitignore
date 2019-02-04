@@ -4,7 +4,7 @@
 .Ruserdata
 data/nplcc/
 data/cdf/
-data/nplcc_cost_occupancy.rds
+data/nplcc_cost_occupancy*
 output/gurobi/
 output/rsymphony/
 output/marxan/
