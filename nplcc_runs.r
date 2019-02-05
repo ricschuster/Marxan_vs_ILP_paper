@@ -2,11 +2,18 @@ library(raster)
 library(prioritizr)
 library(marxan)
 library(foreach)
+library(doParallel)
+library(uuid)
 library(here)
 library(tidyverse)
+pkg_list <- c("raster", "prioritizr", "marxan", "uuid",  "here", "tidyverse")
 select <- dplyr::select
 walk(list.files("R", full.names = TRUE), source)
 prioritizr_timed <- add_timer(prioritizr::solve)
+# parallelization
+n_cores <- 2
+cl <- makeCluster(n_cores)
+registerDoParallel(cl)
 
 # load nplcc data ----
 
@@ -38,32 +45,33 @@ rm(cost_occ)
 
 # planning unit raster
 pus <- here("data", "nplcc_planning-units.tif") %>% 
+  raster() %>% 
+  # create an empty template
   raster()
-
 
 # setup runs ----
 
 # define run matrix
 marxan_runs <- expand.grid(
-  marxan_iterations = c(1e5, 1e6, 1e7, 1e8, 1e9), 
-  spf = 5^(1:5)
+  marxan_iterations = c(1e5, 1e6, 1e7, 1e8, 1e9),
+  spf = 5^(1:4)
 )
 runs <- expand.grid(target = seq(0.1, 0.9, by = 0.1),
                      n_features = round(seq(10, 72, length.out = 5)),
-                     n_pu = round(nrow(cost) / 4^(4:0))) %>% 
+                     n_pu = round(nrow(cost) / 4^(4:0))) %>%
   # add marxan specific parameters
   mutate(marxan = list(marxan_runs),
-         run_id = row_number()) %>% 
+         run_id = row_number()) %>%
   select(run_id, everything())
 
-# for testing
-# marxan_runs <- expand.grid(marxan_iterations = c(1e5, 1e7), spf = c(10, 100))
-# runs <- expand.grid(target = c(0.2, 0.5),
+# # for testing
+# marxan_runs <- expand.grid(marxan_iterations = c(1e5, 1e6), spf = c(5, 25))
+# runs <- expand.grid(target = c(0.25, 0.5),
 #                     n_features = c(10, nrow(species)),
-#                     n_pu = round(nrow(cost) / 4^c(4, 0))) %>% 
+#                     n_pu = round(nrow(cost) / 4^c(4, 3))) %>%
 #   # add marxan specific parameters
 #   mutate(marxan = list(marxan_runs),
-#          run_id = row_number()) %>% 
+#          run_id = row_number()) %>%
 #   select(run_id, everything())
 
 # fixed run parameters
@@ -93,6 +101,14 @@ runs_dir <- here("output", "runs")
 unlink(runs_dir, recursive = TRUE)
 dir.create(runs_dir)
 
+# convert vector of selected units to raster using template
+solution_to_raster <- function(x, y) {
+  x <- filter(x, solution_1 == 1) %>% 
+    pull(id)
+  y[x] <- 1
+  return(y)
+}
+
 set.seed(1)
 runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
   r <- runs[run, ]
@@ -103,12 +119,17 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
   # sample species and planning units
   features <- species %>% 
     select(id, name = species_code) %>% 
+    #slice(seq_len(r$n_features)) %>% 
     sample_n(size = r$n_features, replace = FALSE) %>% 
     arrange(id) %>% 
     as.data.frame(stringsAsFactors = FALSE)
+  r$species <- paste(features$name, collapse = ",")
   cost_ss <- cost %>% 
+    #slice(seq_len(r$n_pu)) %>% 
     sample_n(size = r$n_pu, replace = FALSE) %>% 
     arrange(id)
+  pu_ss <- pus
+  pu_ss[cost_ss$id] <- 0
   rij <- filter(occ, species %in% features$id, pu %in% cost_ss$id) %>% 
     arrange(pu, species)
   targets <- group_by(rij, species) %>% 
@@ -165,7 +186,7 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
                        boundary = NULL, skipchecks = TRUE)
   # loop over marxan iterations
   r_marxan <- foreach(i_marxan = seq_len(nrow(r$marxan[[1]])), 
-                      .combine = bind_rows) %do% {
+                      .combine = bind_rows, .packages = pkg_list) %do% {
     r_marxan <- r$marxan[[1]][i_marxan, , drop = FALSE]
     message(paste0("  Marxan: ", 
                    "SPF = ", r_marxan$spf, "; ",
@@ -173,20 +194,21 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
     # data
     m_data@species$spf <- r_marxan$spf
     # options
-    m_opts <- MarxanOpts(BLM = 0, NCORES = 1L)
+    m_opts <- MarxanOpts(BLM = 0, NCORES = 1L, VERBOSITY = 3L)
     m_opts@NUMREPS <- as.integer(marxan_reps)
     m_opts@NUMITNS <- as.integer(r_marxan$marxan_iterations)
     m_opts@NUMTEMP <- as.integer(ceiling(m_opts@NUMITNS * 0.2))
     m_unsolved <- MarxanUnsolved(opts = m_opts, data = m_data)
     # solve
-    td <- file.path(tempdir(), "marxan-run")
+    td <- file.path(tempdir(), paste0("marxan-run_", UUIDgenerate()))
     dir.create(td, recursive = TRUE, showWarnings = FALSE)
     write.MarxanUnsolved(m_unsolved, td)
     file.copy(marxan_path, td)
     system(paste0("chmod +x ", file.path(td, basename(marxan_path))))
-    cmd <- paste0("cd ", td, "; ./", basename(marxan_path), " input.dat -s")
-    m_time <- system.time(safely(system)(cmd))
+    setwd(td)
+    m_time <- system.time(system2(marxan_path, args = c("input.dat", "-s")))
     m_results <- safely(read.MarxanResults)(td)$result
+    setwd(here())
     unlink(td, recursive = TRUE)
     # save
     if (!is.null(m_results)) {
@@ -227,7 +249,7 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
   }
   r$marxan <- list(r_marxan)
   # save this iteration in case of crashing
-  str_glue_data(r, "run-", i_marxan, 
+  str_glue_data(r, "run-", run, 
                 "_target-{target}_features-{n_features}_pu-{n_pu}.rds") %>% 
     file.path(runs_dir, .) %>% 
     saveRDS(r, .)
@@ -237,15 +259,18 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
 # unnest
 runs_g <- runs %>% 
   mutate(solver = "gurobi") %>% 
-  select(run_id, solver, target, n_features, n_pu, gurobi) %>% 
+  select(run_id, solver, target, n_features, n_pu, species, gurobi) %>% 
   unnest()
 runs_s <- runs %>% 
   mutate(solver = "rsymphony") %>% 
-  select(run_id, solver, target, n_features, n_pu, rsymphony) %>% 
+  select(run_id, solver, target, n_features, n_pu, species, rsymphony) %>% 
   unnest()
 runs_m <- runs %>% 
   mutate(solver = "marxan") %>% 
-  select(run_id, solver, target, n_features, n_pu, marxan) %>% 
+  select(run_id, solver, target, n_features, n_pu, species, marxan) %>% 
   unnest()
 runs_long <- bind_rows(runs_g, runs_s, runs_m)
 write_csv(runs_long, here("output", "ilp-comparison-runs.csv"))
+
+# clean up
+stopCluster(cl)
