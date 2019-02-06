@@ -77,6 +77,7 @@ runs <- expand.grid(target = seq(0.1, 0.9, by = 0.1),
 # fixed run parameters
 ilp_gap <- 0.1
 marxan_reps <- 10
+random_subset <- TRUE
 sysname <- tolower(Sys.info()[["sysname"]])
 marxan_path <- switch(sysname, 
                       windows = here("marxan", "Marxan_x64.exe"), 
@@ -117,17 +118,26 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
     message()
   
   # sample species and planning units
-  features <- species %>% 
-    select(id, name = species_code) %>% 
-    #slice(seq_len(r$n_features)) %>% 
-    sample_n(size = r$n_features, replace = FALSE) %>% 
-    arrange(id) %>% 
-    as.data.frame(stringsAsFactors = FALSE)
+  if (random_subset) {
+    features <- species %>% 
+      select(id, name = species_code) %>% 
+      sample_n(size = r$n_features, replace = FALSE) %>% 
+      arrange(id) %>% 
+      as.data.frame(stringsAsFactors = FALSE)
+    cost_ss <- cost %>% 
+      sample_n(size = r$n_pu, replace = FALSE) %>% 
+      arrange(id)
+  } else {
+    features <- species %>% 
+      select(id, name = species_code) %>% 
+      slice(seq_len(r$n_features)) %>% 
+      arrange(id) %>% 
+      as.data.frame(stringsAsFactors = FALSE)
+    cost_ss <- cost %>% 
+      slice(seq_len(r$n_pu)) %>% 
+      arrange(id)
+  }
   r$species <- paste(features$name, collapse = ",")
-  cost_ss <- cost %>% 
-    #slice(seq_len(r$n_pu)) %>% 
-    sample_n(size = r$n_pu, replace = FALSE) %>% 
-    arrange(id)
   pu_ss <- pus
   pu_ss[cost_ss$id] <- 0
   rij <- filter(occ, species %in% features$id, pu %in% cost_ss$id) %>% 
