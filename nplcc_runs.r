@@ -11,7 +11,7 @@ select <- dplyr::select
 walk(list.files("R", full.names = TRUE), source)
 prioritizr_timed <- add_timer(prioritizr::solve)
 # parallelization
-n_cores <- 2
+n_cores <- 12
 cl <- makeCluster(n_cores)
 registerDoParallel(cl)
 
@@ -53,12 +53,12 @@ pus <- here("data", "nplcc_planning-units.tif") %>%
 
 # define run matrix
 marxan_runs <- expand.grid(
-  marxan_iterations = c(1e5, 1e6, 1e7, 1e8, 1e9),
-  spf = 5^(1:4)
+  marxan_iterations = c(1e4, 1e5, 1e6, 1e7, 1e8),
+  spf = 5^(0:3)
 )
 runs <- expand.grid(target = seq(0.1, 0.9, by = 0.1),
                      n_features = round(seq(10, 72, length.out = 5)),
-                     n_pu = round(nrow(cost) / 4^(4:0))) %>%
+                     n_pu = round(nrow(cost) / 4^(4:2))) %>%
   # add marxan specific parameters
   mutate(marxan = list(marxan_runs),
          run_id = row_number()) %>%
