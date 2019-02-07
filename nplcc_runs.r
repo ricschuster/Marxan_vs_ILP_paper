@@ -76,7 +76,7 @@ runs <- expand.grid(target = seq(0.1, 0.9, by = 0.1),
 
 # fixed run parameters
 ilp_gap <- 0.1
-marxan_reps <- 10
+marxan_reps <- 100
 random_subset <- TRUE
 sysname <- tolower(Sys.info()[["sysname"]])
 marxan_path <- switch(sysname, 
@@ -196,7 +196,7 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
                        boundary = NULL, skipchecks = TRUE)
   # loop over marxan iterations
   r_marxan <- foreach(i_marxan = seq_len(nrow(r$marxan[[1]])), 
-                      .combine = bind_rows, .packages = pkg_list) %do% {
+                      .combine = bind_rows, .packages = pkg_list) %dopar% {
     r_marxan <- r$marxan[[1]][i_marxan, , drop = FALSE]
     message(paste0("  Marxan: ", 
                    "SPF = ", r_marxan$spf, "; ",
@@ -204,7 +204,7 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
     # data
     m_data@species$spf <- r_marxan$spf
     # options
-    m_opts <- MarxanOpts(BLM = 0, NCORES = 12L, VERBOSITY = 3L)
+    m_opts <- MarxanOpts(BLM = 0, NCORES = 1L, VERBOSITY = 3L)
     m_opts@NUMREPS <- as.integer(marxan_reps)
     m_opts@NUMITNS <- as.integer(r_marxan$marxan_iterations)
     m_opts@NUMTEMP <- as.integer(ceiling(m_opts@NUMITNS * 0.2))
