@@ -76,7 +76,7 @@ runs <- expand.grid(target = seq(0.1, 0.9, by = 0.1),
 
 # fixed run parameters
 ilp_gap <- 0.1
-marxan_reps <- 100
+marxan_reps <- 10
 random_subset <- TRUE
 sysname <- tolower(Sys.info()[["sysname"]])
 marxan_path <- switch(sysname, 
