@@ -31,13 +31,8 @@ cost_occ <- read_csv(nplcc_file,
 # split out cost and occupancy
 cost <- select(cost_occ, id = pu, cost) %>% 
   arrange(id)
-occ <- select(cost_occ, -cost) %>% 
-  gather("species_code", "amount", -pu) %>% 
-  inner_join(species %>% select(species_code, species = id), 
-             by = "species_code") %>% 
-  select(pu, species, amount, name = species_code) %>% 
-  arrange(pu, species)
-rm(cost_occ)
+occ <- select(cost_occ, -cost) 
+#rm(cost_occ)
 
 # planning unit raster
 pus <- here("data", "nplcc_planning-units.tif") %>% 
