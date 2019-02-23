@@ -100,42 +100,42 @@ runs_long <- runs_long %>% mutate(solv_it = ifelse(!is.na(marxan_iterations), pa
 
 rl_filt <- runs_long %>% filter(n_features == 72 & n_pu == 148510 & 
                                   (solver != 'marxan' | (marxan_iterations > 1E+07 & spf > 1))
-                                  ) %>% group_by(solver, target) %>% 
+) %>% group_by(solver, target) %>% 
   summarise(time = mean(time, na.rm = T),
             cost = mean(cost, na.rm = T))
 
 rl_filt <- rl_filt %>%
   mutate(deltaC = (cost - filter(rl_filt, solver == 'gurobi')$cost)/filter(rl_filt, solver == 'gurobi')$cost * 100,
          deltaT = cost - filter(rl_filt, solver == 'gurobi')$cost)
-  
+
 
 (p1 <- ggplot(data=rl_filt, aes(x = target, y = time, group = solver)) +
-  ggtitle("Marxan - ILP: # features = 72; # pu's = 148510; # iterations = 1E+08 \n mean time + mean cost for Marxan") +
-  ylab("Mean processing time [sec]") +
-  geom_line(aes(color=solver))+
-  geom_point(aes(color=solver)) +
-  scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target)    
+    ggtitle("Marxan - ILP: # features = 72; # pu's = 148510; # iterations = 1E+08 \n mean time + mean cost for Marxan") +
+    ylab("Mean processing time [sec]") +
+    geom_line(aes(color=solver))+
+    geom_point(aes(color=solver)) +
+    scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target)    
 )
 
 
 (p2 <- ggplot(data=rl_filt, aes(x = target, y = cost, group = solver)) +
-  ggtitle("Marxan - ILP: # features = 72; # pu's = 148510; # iterations = 1E+08 \n mean time + mean cost for Marxan") +
-  ylab("Solution cost [$]") +
-  geom_line(aes(color=solver))+
-  geom_point(aes(color=solver))+
-  scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target)
+    ggtitle("Marxan - ILP: # features = 72; # pu's = 148510; # iterations = 1E+08 \n mean time + mean cost for Marxan") +
+    ylab("Solution cost [$]") +
+    geom_line(aes(color=solver))+
+    geom_point(aes(color=solver))+
+    scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target)
 )
 
 (p3 <- ggplot(data=rl_filt, aes(x = target, y = deltaC, group = solver)) +
-  ggtitle("Marxan - ILP: # features = 72; # pu's = 148510; # iterations = 1E+08 \n mean time + mean cost for Marxan") +
-  ylab("Delta cost [%] with optimal cost as baseline") +
-  geom_line(aes(color=solver))+
-  geom_point(aes(color=solver)) +
-  geom_text(aes(label = ifelse(deltaT > 1000000,
-                               as.character(paste0("$",round(deltaT/1000000,0),"M")),
-                               ifelse(solver == "gurobi", paste0("$",round(cost/1000000,0),"M"),""))), hjust = 0.5, vjust = -0.7) +
-  scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target)
-    
+    ggtitle("Marxan - ILP: # features = 72; # pu's = 148510; # iterations = 1E+08 \n mean time + mean cost for Marxan") +
+    ylab("Delta cost [%] with optimal cost as baseline") +
+    geom_line(aes(color=solver))+
+    geom_point(aes(color=solver)) +
+    geom_text(aes(label = ifelse(deltaT > 1000000,
+                                 as.character(paste0("$",round(deltaT/1000000,0),"M")),
+                                 ifelse(solver == "gurobi", paste0("$",round(cost/1000000,0),"M"),""))), hjust = 0.5, vjust = -0.7) +
+    scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target)
+  
 )
 
 
