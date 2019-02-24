@@ -90,16 +90,16 @@ stopifnot(file.exists(marxan_path))
 
 # clean up old files
 gurobi_dir <- here("output", "gurobi")
-unlink(gurobi_dir, recursive = TRUE)
+#unlink(gurobi_dir, recursive = TRUE)
 dir.create(gurobi_dir)
 rsymphony_dir <- here("output", "rsymphony")
-unlink(rsymphony_dir, recursive = TRUE)
+#unlink(rsymphony_dir, recursive = TRUE)
 dir.create(rsymphony_dir)
 marxan_dir <- here("output", "marxan")
-unlink(marxan_dir, recursive = TRUE)
+#unlink(marxan_dir, recursive = TRUE)
 dir.create(marxan_dir)
 runs_dir <- here("output", "runs")
-unlink(runs_dir, recursive = TRUE)
+#unlink(runs_dir, recursive = TRUE)
 dir.create(runs_dir)
 
 # convert vector of selected units to raster using template
