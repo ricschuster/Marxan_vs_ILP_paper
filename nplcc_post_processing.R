@@ -345,7 +345,7 @@ pus <- here("data", "nplcc_planning-units.tif") %>%
   raster()
 
 # setup runs ----
-ilp_gap <- 0.1
+ilp_gap <- 0.001
 target = 0.3
 n_features = 72
 n_pu = 148510
@@ -381,6 +381,23 @@ targets <- group_by(rij, species) %>%
 features <- inner_join(features, targets, by = "id")
 
 # ilp 
+p1 <- problem(cost_ss, 
+             features = features %>% select(id, name), 
+             rij = rij, 
+             cost_column = "cost") %>% 
+  add_min_set_objective() %>%
+  add_relative_targets(0.3) %>%
+  add_binary_decisions()
+# gurobi
+s_gur1 <- p1 %>% 
+  add_gurobi_solver(gap = ilp_gap) %>% 
+  prioritizr_timed()
+
+g1 <- solution_to_raster(s_gur1$result, pus)
+
+(cost_gurobi1 <- attr(s_gur1$result, "objective"))
+
+
 p <- problem(cost_ss, 
              features = features %>% select(id, name), 
              rij = rij, 
@@ -413,3 +430,24 @@ c1 <- table(g1[])
 c2 <- table(g2[])
 
 (delta <- table(g2[]) - table(g1[]))
+
+tb1 <- tibble(pu = s_gur$result$id, g1 = s_gur1$result$solution_1, g2 = s_gur$result$solution_1)
+tb1$g1 <- g1[tb1$pu]
+
+
+tot_amount <- group_by(rij, species) %>% 
+  summarize(tot_amount = sum(amount, na.rm = TRUE))
+
+rij_j <- inner_join(rij, tb1)
+
+
+amount_g1 <- rij_j %>% filter(g1 == 1) %>% group_by(species) %>% 
+  summarize(g1_amount = sum(amount, na.rm = TRUE))
+
+amount_g2 <- rij_j %>% filter(g2 == 1) %>% group_by(species) %>% 
+  summarize(g2_amount = sum(amount, na.rm = TRUE))
+
+out_tb <- tibble(species = tot_amount$species, tot_amount = tot_amount$tot_amount, 
+                 g1 = amount_g1$g1_amount, g2 = amount_g2$g2_amount) %>%
+                  mutate(g1_perc = g1/tot_amount*100, g2_perc = g2/tot_amount*100, incr = g2_perc - g1_perc)
+  
