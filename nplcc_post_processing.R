@@ -451,3 +451,15 @@ out_tb <- tibble(species = tot_amount$species, tot_amount = tot_amount$tot_amoun
                  g1 = amount_g1$g1_amount, g2 = amount_g2$g2_amount) %>%
                   mutate(g1_perc = g1/tot_amount*100, g2_perc = g2/tot_amount*100, incr = g2_perc - g1_perc)
   
+
+
+
+
+##############
+## run times
+##############
+
+runs_complete <- runs_long %>% filter(run_id <200)
+(time_sum <- runs_complete %>% group_by(solver) %>% summarise(min_t = min(time),
+                                                              mean_t = mean(time),
+                                                              max_t = max(time)))
