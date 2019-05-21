@@ -465,8 +465,26 @@ runs_complete <- runs_long %>% filter(run_id <200)
                                                               max_t = max(time)))
 
 
-rr <- runs_complete %>% filter(solver == "gurobi") 
+rr <- runs_complete %>% filter(solver == "marxan", marxan_iterations == 100000000, spf == 5) 
 ss <- rr %>% group_by(n_features, n_pu)
 
-ggplot(runs_complete %>% filter(solver == "gurobi"), aes(target, time, colour = as.factor(n_pu), group = interaction(n_features, n_pu))) +
-  geom_line()
+
+ggplot(runs_complete %>% filter(solver == "gurobi"), 
+       aes(target, time, colour = as.factor(n_pu) , shape = as.factor(n_features), 
+           group = interaction(n_features, n_pu))) +
+  geom_line() +
+  geom_point()
+
+ggplot(runs_complete %>% filter(solver == "rsymphony"), 
+       aes(target, time, colour = as.factor(n_pu) , shape = as.factor(n_features), 
+           group = interaction(n_features, n_pu))) +
+  geom_line() +
+  geom_point()
+
+
+ggplot(rr, 
+       aes(target, time, colour = as.factor(n_pu) , shape = as.factor(n_features), 
+           group = interaction(n_features, n_pu))) +
+  geom_line() +
+  geom_point()
+
