@@ -463,3 +463,10 @@ runs_complete <- runs_long %>% filter(run_id <200)
 (time_sum <- runs_complete %>% group_by(solver) %>% summarise(min_t = min(time),
                                                               mean_t = mean(time),
                                                               max_t = max(time)))
+
+
+rr <- runs_complete %>% filter(solver == "gurobi") 
+ss <- rr %>% group_by(n_features, n_pu)
+
+ggplot(runs_complete %>% filter(solver == "gurobi"), aes(target, time, colour = as.factor(n_pu), group = interaction(n_features, n_pu))) +
+  geom_line()
