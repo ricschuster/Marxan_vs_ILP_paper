@@ -383,7 +383,7 @@ runs_complete <- runs_long %>% filter(run_id <200)
                                                               max_t = max(time)))
 
 
-rr <- runs_complete %>% filter(solver == "marxan", marxan_iterations == 100000000, spf == 5) 
+rr <- runs_complete %>% filter(solver == "marxan", marxan_iterations == 100000000, spf == 25) 
 ss <- rr %>% group_by(n_features, n_pu)
 
 pp <- function(x, title = "", y.var) {
@@ -405,7 +405,7 @@ pp(runs_complete %>% filter(solver == "rsymphony"), "SYMPHONY", time)
 pp(rr, "Marxan", time)
 
 
-r2 <- runs_complete %>% filter(solver == "gurobi" | solver == "rsymphony" | (solver == "marxan" & marxan_iterations == 100000000 & spf == 5))
+r2 <- runs_complete %>% filter(solver == "gurobi" | solver == "rsymphony" | (solver == "marxan" & marxan_iterations == 100000000 & spf == 25))
 r2 <- r2 %>% group_by(solver)
 
 r2 <- r2 %>% mutate(tt = (time - filter(r2, solver == 'gurobi')$time)/filter(r2, solver == 'gurobi')$time,
@@ -418,4 +418,4 @@ pp(r2 %>% filter(solver == "marxan"), "Marxan", tt)
 
 pp(r2 %>% filter(solver == "rsymphony"), "SYMPHONY", cc)
 
-pp(r2 %>% filter(solver == "marxan"), "Marxan", cc*100)
+pp(r2 %>% filter(solver == "marxan"), "Marxan", cc * 100)
