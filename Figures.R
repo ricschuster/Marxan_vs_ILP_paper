@@ -11,6 +11,23 @@ walk(list.files("R", full.names = TRUE), source)
 prioritizr_timed <- add_timer(prioritizr::solve)
 
 
+#plot function
+pp <- function(x, title = "", y.var) {
+  #x.var <- enquo(x.var)
+  y.var <- enquo(y.var)
+  ggplot(x, 
+         aes(x = target, y = !! y.var, colour = as.factor(n_pu) , shape = as.factor(n_features), 
+             group = interaction(n_features, n_pu))) +
+    scale_colour_discrete(name  ="Planning units") +
+    scale_shape_discrete(name  ="Features") + 
+    geom_line() +
+    geom_point() + 
+    ggtitle(title) +
+    theme_bw()
+}
+
+
+
 # Post-processing
 runs_long <- read_csv(here("output", "ilp-comparison-runs.csv"))
 runs_long <- runs_long %>% mutate(solv_it = ifelse(!is.na(marxan_iterations), paste(solver, marxan_iterations, sep="_"), solver)) %>%
@@ -94,6 +111,53 @@ mm <- rr_marxan_compl %>% filter(solver == "marxan" & marxan_iterations > 1E+07 
 summary(mm$cost_perc * 100)
 
 pp(rr_marxan_compl %>% filter(solver == "marxan" & marxan_iterations > 1E+07 & spf > 1 & spf < 125), "Marxan vs Gurobi; #iterations > 100,000; SPF = 5 or 25", cost_perc * 100)
+
+
+
+
+
+
+##############
+## run times
+##############
+
+
+runs_complete <- runs_long %>% filter(run_id <200)
+
+(time_sum <- runs_complete %>% group_by(solver) %>% summarise(min_t = min(time),
+                                                              mean_t = mean(time),
+                                                              max_t = max(time)))
+
+
+r2 <- runs_complete %>% filter(solver == "gurobi" | solver == "rsymphony" | (solver == "marxan" & marxan_iterations == 100000000 & spf == 25))
+r2 <- r2 %>% group_by(solver)
+
+r2 <- r2 %>% mutate(tt = (time - filter(r2, solver == 'gurobi')$time)/filter(r2, solver == 'gurobi')$time,
+                    cc = (cost - filter(r2, solver == 'gurobi')$cost)/filter(r2, solver == 'gurobi')$cost)
+
+
+
+
+
+pp(r2 %>% filter(solver == "marxan"), "Marxan vs Gurobi; #iterations = 1E+08; SPF = 25", cc * 100)
+
+
+
+
+pp(r2 %>% filter(solver == "rsymphony"), "SYMPHONY", tt)
+
+pp(r2 %>% filter(solver == "marxan"), "Marxan", tt)
+
+
+pp(r2 %>% filter(solver == "marxan"), "Marxan", tt)
+
+#time
+pp(runs_complete %>% filter(solver == "gurobi"), "Gurobi", time)
+
+pp(runs_complete %>% filter(solver == "rsymphony"), "SYMPHONY", time)
+
+pp(rr, "Marxan", time)
+
 
 
 
@@ -261,59 +325,3 @@ pp(rr_marxan_compl %>% filter(solver == "marxan" & marxan_iterations > 1E+07 & s
 #   mutate(g1_perc = g1/tot_amount*100, g2_perc = g2/tot_amount*100, incr = g2_perc - g1_perc)
 
 
-
-
-
-##############
-## run times
-##############
-pp <- function(x, title = "", y.var) {
-  #x.var <- enquo(x.var)
-  y.var <- enquo(y.var)
-  ggplot(x, 
-         aes(x = target, y = !! y.var, colour = as.factor(n_pu) , shape = as.factor(n_features), 
-             group = interaction(n_features, n_pu))) +
-    scale_colour_discrete(name  ="Planning units") +
-    scale_shape_discrete(name  ="Features") + 
-    geom_line() +
-    geom_point() + 
-    ggtitle(title) +
-    theme_bw()
-}
-
-
-runs_complete <- runs_long %>% filter(run_id <200)
-
-(time_sum <- runs_complete %>% group_by(solver) %>% summarise(min_t = min(time),
-                                                              mean_t = mean(time),
-                                                              max_t = max(time)))
-
-
-r2 <- runs_complete %>% filter(solver == "gurobi" | solver == "rsymphony" | (solver == "marxan" & marxan_iterations == 100000000 & spf == 25))
-r2 <- r2 %>% group_by(solver)
-
-r2 <- r2 %>% mutate(tt = (time - filter(r2, solver == 'gurobi')$time)/filter(r2, solver == 'gurobi')$time,
-                    cc = (cost - filter(r2, solver == 'gurobi')$cost)/filter(r2, solver == 'gurobi')$cost)
-
-
-
-
-
-pp(r2 %>% filter(solver == "marxan"), "Marxan vs Gurobi; #iterations = 1E+08; SPF = 25", cc * 100)
-
-
-
-
-pp(r2 %>% filter(solver == "rsymphony"), "SYMPHONY", tt)
-
-pp(r2 %>% filter(solver == "marxan"), "Marxan", tt)
-
-
-pp(r2 %>% filter(solver == "marxan"), "Marxan", tt)
-
-#time
-pp(runs_complete %>% filter(solver == "gurobi"), "Gurobi", time)
-
-pp(runs_complete %>% filter(solver == "rsymphony"), "SYMPHONY", time)
-
-pp(rr, "Marxan", time)
