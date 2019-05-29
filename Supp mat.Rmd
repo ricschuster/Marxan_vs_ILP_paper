@@ -1,10 +1,14 @@
 ---
 output:
-  html_document: default
-  word_document: default
   pdf_document: 
     fig_caption: yes
+  word_document: default
+  html_document: default
+header-includes:
+- \usepackage{caption}
 ---
+
+\captionsetup[table]{labelformat=empty}
 
 ```{r setup, include=FALSE, echo = FALSE,}
 knitr::opts_chunk$set(echo = TRUE)
@@ -22,6 +26,8 @@ walk(list.files("R", full.names = TRUE), source)
 prioritizr_timed <- add_timer(prioritizr::solve)
 
 
+spp <- read_csv(here("data", "nplcc_species.csv"))
+names(spp)[-1] <- c("Species Code", "Common Name", "Scientific Name")
 # Post-processing
 runs_long <- read_csv(here("output", "ilp-comparison-runs.csv"))
 runs_long <- runs_long %>% mutate(solv_it = ifelse(!is.na(marxan_iterations), paste(solver, marxan_iterations, sep="_"), solver)) %>%
@@ -81,6 +87,12 @@ Richard Schuster, Jeffrey O. Hanson, Matt Strimas-Mackey, Joseph R. Bennett.
 
 
 \newpage
+```{r TableS1, echo = FALSE, message = FALSE, results = "asis"}
+knitr::kable(spp[,-1], caption = "**Table S1**: List of species that were used as features in our analysis.")
+```
+
+\newpage
+
 ```{r, echo = FALSE, message = FALSE, results = "hide", fig.cap="**Figure S1**: Cost savings Gurobi vs Marxan"}
 pp(rr_marxan_compl %>% filter(solver == "marxan" & marxan_iterations > 1E+07 & spf > 1 & spf < 125), "Marxan vs Gurobi; #iterations > 100,000; SPF = 5 or 25", cost_perc)
 
@@ -121,5 +133,4 @@ pp(rr_marxan_compl %>% filter(solver == "rsymphony"), "SYMPHONY", time)
 pp(rr_marxan_compl %>% filter(solver == "marxan") %>% group_by(target, n_features, n_pu) %>% 
      summarise(time = mean(time)), "Marxan", time)
 ```
-
 
