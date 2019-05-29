@@ -90,3 +90,16 @@ pp(rr_marxan_compl %>% filter(solver == "marxan" & marxan_iterations > 1E+07 & s
 
 ```
 
+```{r, echo = FALSE, message = FALSE, results = "hide", fig.cap="Figure S2: Cost profile for Gurobi solver."}
+pp(rr_marxan_compl %>% filter(solver == "gurobi"), "Gurobi", cost)
+```
+
+```{r, echo = FALSE, message = FALSE, results = "hide", fig.cap="Figure S3: Cost profile for SYMPHONY solver."}
+pp(rr_marxan_compl %>% filter(solver == "rsymphony"), "SYMPHONY", cost)
+```
+
+```{r, echo = FALSE, message = FALSE, results = "hide", fig.cap="Figure S4: Cost profile for Marxan using Simulated Annealing."}
+pp(rr_marxan_compl %>% filter(solver == "marxan") %>% group_by(target, n_features, n_pu) %>% 
+     summarise(cost = mean(cost)), "Marxan", cost)
+```
+
