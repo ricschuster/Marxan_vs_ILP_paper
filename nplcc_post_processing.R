@@ -418,4 +418,7 @@ pp(r2 %>% filter(solver == "marxan"), "Marxan", tt)
 
 pp(r2 %>% filter(solver == "rsymphony"), "SYMPHONY", cc)
 
-pp(r2 %>% filter(solver == "marxan"), "Marxan", cc * 100)
+pp(r2 %>% filter(solver == "marxan"), "Marxan vs Gurobi; #iterations = 1E+08; SPF = 25", cc * 100)
+
+pp(r2 %>% filter(solver == "marxan"), "Marxan", tt)
+
