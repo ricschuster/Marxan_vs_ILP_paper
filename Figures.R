@@ -62,7 +62,8 @@ rl_filt <- rl_filt %>%
     geom_text(aes(label = ifelse(deltaT > 1000000,
                                  as.character(paste0("$",round(deltaT/1000000,0),"M")),
                                  ifelse(solver == "gurobi", paste0("$",round(cost/1000000,0),"M"),""))), hjust = 0.5, vjust = -0.7) +
-    scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target)
+    scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target) +
+    theme_bw()
   
 )
 
@@ -75,7 +76,8 @@ rl_filt <- rl_filt %>%
     geom_text(aes(label = ifelse(solver == "gurobi", "",as.character(paste0(round(deltaTM/100,2),""))), hjust = 0.5, vjust = -0.7)) +
     
     scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target) +
-    scale_y_continuous("Differnce to fastest solver [multiplier of best time]", labels = as.character(c(0, 200, 400, 600)), breaks = c(0, 20000, 40000, 60000))
+    scale_y_continuous("Differnce to fastest solver [multiplier of best time]", labels = as.character(c(0, 200, 400, 600)), breaks = c(0, 20000, 40000, 60000)) +
+    theme_bw()
 )
 
 
