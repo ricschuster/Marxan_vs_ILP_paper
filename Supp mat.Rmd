@@ -48,6 +48,12 @@ pp <- function(x, title = "", y.var) {
     theme_bw()
 }
 
+r2 <- runs_complete %>% filter(solver == "gurobi" | solver == "rsymphony" | (solver == "marxan" & marxan_iterations == 100000000 & spf == 25))
+r2 <- r2 %>% group_by(solver)
+
+r2 <- r2 %>% mutate(tt = (time - filter(r2, solver == 'gurobi')$time)/filter(r2, solver == 'gurobi')$time,
+                    cc = (cost - filter(r2, solver == 'gurobi')$cost)/filter(r2, solver == 'gurobi')$cost)
+
 ```
 
 # Conservation Letters
@@ -64,8 +70,8 @@ Richard Schuster, Jeffrey O. Hanson, Matt Strimas-Mackey, Joseph R. Bennett.
 
 #### Wos was i
 
-```{r, echo = FALSE, message = FALSE, results = "hide", fig.cap="Figure S1: plotting example"}
-pp(runs_complete %>% filter(solver == "gurobi"), "Gurobi", time)
+```{r, echo = FALSE, message = FALSE, results = "hide", fig.cap="Figure S1: Cost savings Gurobi vs Marxan"}
+pp(r2 %>% filter(solver == "marxan"), "Marxan vs Gurobi; #iterations = 1E+08; SPF = 25", cc * 100)
 ```
 
 
@@ -81,11 +87,7 @@ pp(rr, "Marxan", time)
 
 ```{r, echo = FALSE, message = FALSE, results = "hide"}
 
-r2 <- runs_complete %>% filter(solver == "gurobi" | solver == "rsymphony" | (solver == "marxan" & marxan_iterations == 100000000 & spf == 25))
-r2 <- r2 %>% group_by(solver)
 
-r2 <- r2 %>% mutate(tt = (time - filter(r2, solver == 'gurobi')$time)/filter(r2, solver == 'gurobi')$time,
-                    cc = (cost - filter(r2, solver == 'gurobi')$cost)/filter(r2, solver == 'gurobi')$cost)
 
 pp(r2 %>% filter(solver == "rsymphony"), "SYMPHONY", tt)
 ```
