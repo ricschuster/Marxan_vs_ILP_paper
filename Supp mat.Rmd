@@ -23,16 +23,29 @@ prioritizr_timed <- add_timer(prioritizr::solve)
 
 # Post-processing
 runs_long <- read_csv(here("output", "ilp-comparison-runs.csv"))
+runs_long <- runs_long %>% mutate(solv_it = ifelse(!is.na(marxan_iterations), paste(solver, marxan_iterations, sep="_"), solver)) %>%
+  filter(run_id < 200)
+
+runs_gur <- runs_long %>% filter(solver == 'gurobi') %>% mutate(cost_gur = cost, time_gur = time) %>% select(run_id, cost_gur, time_gur)
+
+runs_long <- inner_join(runs_long, runs_gur, by = "run_id")
 
 
-runs_complete <- runs_long %>% filter(run_id <200)
-(time_sum <- runs_complete %>% group_by(solver) %>% summarise(min_t = min(time),
-                                                              mean_t = mean(time),
-                                                              max_t = max(time)))
+rl_filt <- runs_long %>% filter(n_features == 72 & n_pu == 148510 & 
+                                  (solver != 'marxan' | (marxan_iterations > 1E+07 & spf > 1))
+) %>% group_by(solver, target) %>% 
+  summarise(time = mean(time, na.rm = T),
+            cost = mean(cost, na.rm = T),
+            time_gur = mean(time_gur, na.rm = T),
+            cost_gur = mean(cost_gur, na.rm = T))
 
+rl_filt <- rl_filt %>%
+  mutate(deltaC = (cost - cost_gur)/cost_gur * 100,
+         deltaT = cost - cost_gur,
+         deltaTM = (time - time_gur)/time_gur * 100,
+         deltaTT = time - time_gur
+  )
 
-rr <- runs_complete %>% filter(solver == "marxan", marxan_iterations == 100000000, spf == 25) 
-ss <- rr %>% group_by(n_features, n_pu)
 
 pp <- function(x, title = "", y.var) {
   #x.var <- enquo(x.var)
@@ -48,11 +61,13 @@ pp <- function(x, title = "", y.var) {
     theme_bw()
 }
 
-r2 <- runs_complete %>% filter(solver == "gurobi" | solver == "rsymphony" | (solver == "marxan" & marxan_iterations == 100000000 & spf == 25))
-r2 <- r2 %>% group_by(solver)
+runs_red <- runs_long %>% filter(run_id <200)
 
-r2 <- r2 %>% mutate(tt = (time - filter(r2, solver == 'gurobi')$time)/filter(r2, solver == 'gurobi')$time,
-                    cc = (cost - filter(r2, solver == 'gurobi')$cost)/filter(r2, solver == 'gurobi')$cost)
+rr_marxan_compl <- runs_red %>% filter(solver == "gurobi" | solver == "rsymphony" | (solver == "marxan" & n_solutions == 10))
+rr_marxan_compl <- rr_marxan_compl %>% group_by(solver)
+
+rr_marxan_compl <- rr_marxan_compl %>% mutate(time_perc = (time - time_gur)/time_gur,
+                    cost_perc = (cost - cost_gur)/cost_gur)
 
 ```
 
@@ -71,44 +86,7 @@ Richard Schuster, Jeffrey O. Hanson, Matt Strimas-Mackey, Joseph R. Bennett.
 #### Wos was i
 
 ```{r, echo = FALSE, message = FALSE, results = "hide", fig.cap="Figure S1: Cost savings Gurobi vs Marxan"}
-pp(r2 %>% filter(solver == "marxan"), "Marxan vs Gurobi; #iterations = 1E+08; SPF = 25", cc * 100)
+pp(rr_marxan_compl %>% filter(solver == "marxan" & marxan_iterations > 1E+07 & spf > 1 & spf < 125), "Marxan vs Gurobi; #iterations > 100,000; SPF = 5 or 25", cost_perc * 100)
+
 ```
-
-
-```{r, echo = FALSE, message = FALSE, results = "hide"}
-                         
-pp(runs_complete %>% filter(solver == "rsymphony"), "SYMPHONY", time)
-```
-
-```{r, echo = FALSE, message = FALSE, results = "hide"}
-
-pp(rr, "Marxan", time)
-```
-
-```{r, echo = FALSE, message = FALSE, results = "hide"}
-
-
-
-pp(r2 %>% filter(solver == "rsymphony"), "SYMPHONY", tt)
-```
-
-```{r, echo = FALSE, message = FALSE, results = "hide"}
-pp(r2 %>% filter(solver == "marxan"), "Marxan", tt)
-```
-
-```{r, echo = FALSE, message = FALSE, results = "hide"}
-
-pp(r2 %>% filter(solver == "rsymphony"), "SYMPHONY", cc)
-```
-
-```{r, echo = FALSE, message = FALSE, results = "hide"}
-
-pp(r2 %>% filter(solver == "marxan"), "Marxan vs Gurobi; #iterations = 1E+08; SPF = 25", cc * 100)
-```
-
-```{r, echo = FALSE, message = FALSE, results = "hide"}
-
-pp(r2 %>% filter(solver == "marxan"), "Marxan", tt)
-```
-
 
