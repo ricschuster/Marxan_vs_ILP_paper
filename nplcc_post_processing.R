@@ -392,9 +392,12 @@ pp <- function(x, title = "", y.var) {
   ggplot(x, 
          aes(x = target, y = !! y.var, colour = as.factor(n_pu) , shape = as.factor(n_features), 
              group = interaction(n_features, n_pu))) +
+    scale_colour_discrete(name  ="Planning units") +
+    scale_shape_discrete(name  ="Features") + 
     geom_line() +
     geom_point() + 
-    ggtitle(title)
+    ggtitle(title) +
+    theme_bw()
 }
 
 
