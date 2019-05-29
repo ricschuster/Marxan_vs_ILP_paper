@@ -101,62 +101,35 @@ runs_red <- runs_long %>% filter(run_id <200)
 rr_marxan_compl <- runs_red %>% filter(solver == "gurobi" | solver == "rsymphony" | (solver == "marxan" & n_solutions == 10))
 rr_marxan_compl <- rr_marxan_compl %>% group_by(solver)
 
-rr_marxan_compl <- rr_marxan_compl %>% mutate(time_perc = (time - time_gur)/time_gur,
-                    cost_perc = (cost - cost_gur)/cost_gur)
+rr_marxan_compl <- rr_marxan_compl %>% mutate(time_perc = (time - time_gur)/time_gur * 100,
+                    cost_perc = (cost - cost_gur)/cost_gur * 100)
 
 mm <- rr_marxan_compl %>% filter(solver == "marxan")
-summary(mm$cost_perc * 100)
+summary(mm$cost_perc)
 
 mm <- rr_marxan_compl %>% filter(solver == "marxan" & marxan_iterations > 1E+07 & spf > 1 & spf < 125)
-summary(mm$cost_perc * 100)
+summary(mm$cost_perc)
 
-pp(rr_marxan_compl %>% filter(solver == "marxan" & marxan_iterations > 1E+07 & spf > 1 & spf < 125), "Marxan vs Gurobi; #iterations > 100,000; SPF = 5 or 25", cost_perc * 100)
+pp(rr_marxan_compl %>% filter(solver == "marxan" & marxan_iterations > 1E+07 & spf > 1 & spf < 125), 
+   "Marxan vs Gurobi; #iterations > 100,000; SPF = 5 or 25", cost_perc)
 
-
-
-
-
-
-##############
-## run times
-##############
+# pp(rr_marxan_compl %>% filter(solver == "rsymphony"), 
+#    "RSYMPHONY vs Gurobi", cost_perc * 100)
 
 
-runs_complete <- runs_long %>% filter(run_id <200)
+pp(rr_marxan_compl %>% filter(solver == "rsymphony"), "SYMPHONY", time_perc)
 
-(time_sum <- runs_complete %>% group_by(solver) %>% summarise(min_t = min(time),
-                                                              mean_t = mean(time),
-                                                              max_t = max(time)))
+pp(rr_marxan_compl %>% filter(solver == "marxan"), "Marxan", time_perc)
 
 
-r2 <- runs_complete %>% filter(solver == "gurobi" | solver == "rsymphony" | (solver == "marxan" & marxan_iterations == 100000000 & spf == 25))
-r2 <- r2 %>% group_by(solver)
-
-r2 <- r2 %>% mutate(tt = (time - filter(r2, solver == 'gurobi')$time)/filter(r2, solver == 'gurobi')$time,
-                    cc = (cost - filter(r2, solver == 'gurobi')$cost)/filter(r2, solver == 'gurobi')$cost)
-
-
-
-
-
-pp(r2 %>% filter(solver == "marxan"), "Marxan vs Gurobi; #iterations = 1E+08; SPF = 25", cc * 100)
-
-
-
-
-pp(r2 %>% filter(solver == "rsymphony"), "SYMPHONY", tt)
-
-pp(r2 %>% filter(solver == "marxan"), "Marxan", tt)
-
-
-pp(r2 %>% filter(solver == "marxan"), "Marxan", tt)
+pp(rr_marxan_compl %>% filter(solver == "marxan"), "Marxan", tt)
 
 #time
-pp(runs_complete %>% filter(solver == "gurobi"), "Gurobi", time)
+pp(rr_marxan_compl %>% filter(solver == "gurobi"), "Gurobi", time)
 
-pp(runs_complete %>% filter(solver == "rsymphony"), "SYMPHONY", time)
+pp(rr_marxan_compl %>% filter(solver == "rsymphony"), "SYMPHONY", time)
 
-pp(rr, "Marxan", time)
+pp(rr_marxan_compl, "Marxan", time)
 
 
 
