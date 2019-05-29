@@ -93,7 +93,7 @@ knitr::kable(spp[,-1], caption = "**Table S1**: List of species that were used a
 
 \newpage
 
-```{r, echo = FALSE, message = FALSE, results = "hide", fig.cap="**Figure S1**: Cost savings Gurobi vs Marxan"}
+```{r, echo = FALSE, fig.cap = "**Figure S1**: Cost savings Gurobi vs Marxan"}
 pp(rr_marxan_compl %>% filter(solver == "marxan" & marxan_iterations > 1E+07 & spf > 1 & spf < 125), "Marxan vs Gurobi; #iterations > 100,000; SPF = 5 or 25", cost_perc)
 
 ```
