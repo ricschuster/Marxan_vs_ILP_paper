@@ -116,6 +116,8 @@ pp(rr_marxan_compl %>% filter(solver == "marxan" & marxan_iterations > 1E+07 & s
 # pp(rr_marxan_compl %>% filter(solver == "rsymphony"), 
 #    "RSYMPHONY vs Gurobi", cost_perc * 100)
 
+
+#cost profiles
 pp(rr_marxan_compl %>% filter(solver == "gurobi"), "Gurobi", cost)
 
 pp(rr_marxan_compl %>% filter(solver == "rsymphony"), "SYMPHONY", cost)
@@ -124,14 +126,28 @@ pp(rr_marxan_compl %>% filter(solver == "marxan") %>% group_by(target, n_feature
      summarise(cost = mean(cost)), "Marxan", cost)
 
 
-pp(rr_marxan_compl %>% filter(solver == "rsymphony"), "SYMPHONY", time_perc)
-
-pp(rr_marxan_compl %>% filter(solver == "marxan"), "Marxan", time_perc)
-
-
-pp(rr_marxan_compl %>% filter(solver == "marxan"), "Marxan", tt)
-
 #time
+
+# mm <- rr_marxan_compl %>% filter(solver == "gurobi")
+# summary(mm$time_perc/100)
+
+mm <- rr_marxan_compl %>% filter(solver == "rsymphony")
+summary(mm$time_perc/100)
+
+mm <- rr_marxan_compl %>% filter(solver == "marxan")
+summary(mm$time_perc/100)
+
+mm <- rr_marxan_compl %>% filter(solver == "marxan" & marxan_iterations > 1E+07 & spf > 1 & spf < 125)
+summary(mm$time_perc/100)
+
+pp(rr_marxan_compl %>% filter(solver == "rsymphony"), "SYMPHONY", time_perc / 100)
+
+pp(rr_marxan_compl %>% filter(solver == "marxan") %>% group_by(target, n_features, n_pu) %>% 
+     summarise(time_perc = mean(time_perc)), "Marxan", time_perc / 100)
+
+
+
+#time profiles
 pp(rr_marxan_compl %>% filter(solver == "gurobi"), "Gurobi", time)
 
 pp(rr_marxan_compl %>% filter(solver == "rsymphony"), "SYMPHONY", time)

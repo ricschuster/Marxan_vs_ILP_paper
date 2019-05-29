@@ -66,8 +66,8 @@ runs_red <- runs_long %>% filter(run_id <200)
 rr_marxan_compl <- runs_red %>% filter(solver == "gurobi" | solver == "rsymphony" | (solver == "marxan" & n_solutions == 10))
 rr_marxan_compl <- rr_marxan_compl %>% group_by(solver)
 
-rr_marxan_compl <- rr_marxan_compl %>% mutate(time_perc = (time - time_gur)/time_gur,
-                    cost_perc = (cost - cost_gur)/cost_gur)
+rr_marxan_compl <- rr_marxan_compl %>% mutate(time_perc = (time - time_gur)/time_gur * 100,
+                    cost_perc = (cost - cost_gur)/cost_gur *100)
 
 ```
 
@@ -86,7 +86,7 @@ Richard Schuster, Jeffrey O. Hanson, Matt Strimas-Mackey, Joseph R. Bennett.
 #### Wos was i
 
 ```{r, echo = FALSE, message = FALSE, results = "hide", fig.cap="Figure S1: Cost savings Gurobi vs Marxan"}
-pp(rr_marxan_compl %>% filter(solver == "marxan" & marxan_iterations > 1E+07 & spf > 1 & spf < 125), "Marxan vs Gurobi; #iterations > 100,000; SPF = 5 or 25", cost_perc * 100)
+pp(rr_marxan_compl %>% filter(solver == "marxan" & marxan_iterations > 1E+07 & spf > 1 & spf < 125), "Marxan vs Gurobi; #iterations > 100,000; SPF = 5 or 25", cost_perc)
 
 ```
 
@@ -102,4 +102,28 @@ pp(rr_marxan_compl %>% filter(solver == "rsymphony"), "SYMPHONY", cost)
 pp(rr_marxan_compl %>% filter(solver == "marxan") %>% group_by(target, n_features, n_pu) %>% 
      summarise(cost = mean(cost)), "Marxan", cost)
 ```
+
+```{r, echo = FALSE, message = FALSE, results = "hide", fig.cap="Figure S5: Symphony vs Gurobi."}
+pp(rr_marxan_compl %>% filter(solver == "rsymphony"), "SYMPHONY", time_perc / 100)
+```
+
+```{r, echo = FALSE, message = FALSE, results = "hide", fig.cap="Figure S6: Marxan vs Gurobi."}
+pp(rr_marxan_compl %>% filter(solver == "marxan") %>% group_by(target, n_features, n_pu) %>% 
+     summarise(time_perc = mean(time_perc)), "Marxan", time_perc / 100)
+```
+
+
+```{r, echo = FALSE, message = FALSE, results = "hide", fig.cap="Figure S7: Time profile for Gurobi solver."}
+pp(rr_marxan_compl %>% filter(solver == "gurobi"), "Gurobi", time)
+```
+
+```{r, echo = FALSE, message = FALSE, results = "hide", fig.cap="Figure S8: Time profile for Gurobi solver."}
+pp(rr_marxan_compl %>% filter(solver == "rsymphony"), "SYMPHONY", time)
+```
+
+```{r, echo = FALSE, message = FALSE, results = "hide", fig.cap="Figure S9: Time profile for Gurobi solver."}
+pp(rr_marxan_compl %>% filter(solver == "marxan") %>% group_by(target, n_features, n_pu) %>% 
+     summarise(time = mean(time)), "Marxan", time)
+```
+
 
