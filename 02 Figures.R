@@ -96,18 +96,6 @@ ggsave(here("figures","Figure 1.png"), fig1)
 ggsave(here("figures","Figure 2.png"), fig2)
 
 
-(deltas <- runs_long %>% mutate(deltaTM = (time - time_gur)/time_gur * 100,
-                                deltaTT = time - time_gur,
-                                deltaC = (cost - cost_gur)/cost_gur * 100
-) %>% group_by(solver) %>% summarise(avg_time = mean(deltaTM)/100,
-                                     max_time = max(deltaTM)/100,
-                                     min_time = min(deltaTM)/100,
-                                     avg_cost = mean(deltaC, na.rm = T),
-                                     max_cost = max(deltaC, na.rm = T),
-                                     min_cost = min(deltaC, na.rm = T))
-) 
-
-
 # Range of savings and time
 runs_red <- runs_long %>% filter(run_id <200)
 

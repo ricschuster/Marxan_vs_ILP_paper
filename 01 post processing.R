@@ -14,194 +14,40 @@ prioritizr_timed <- add_timer(prioritizr::solve)
 
 # Post-processing
 runs_long <- read_csv(here("output", "ilp-comparison-runs.csv"))
-runs_long <- runs_long %>% mutate(solv_it = ifelse(!is.na(marxan_iterations), paste(solver, marxan_iterations, sep="_"), solver))
+runs_long <- runs_long %>% mutate(solv_it = ifelse(!is.na(marxan_iterations), paste(solver, marxan_iterations, sep="_"), solver)) %>%
+  filter(run_id < 200)
+
+runs_gur <- runs_long %>% filter(solver == 'gurobi') %>% mutate(cost_gur = cost, time_gur = time) %>% select(run_id, cost_gur, time_gur)
+
+runs_long <- inner_join(runs_long, runs_gur, by = "run_id")
+
 
 rl_filt <- runs_long %>% filter(n_features == 72 & n_pu == 148510 & 
                                   (solver != 'marxan' | (marxan_iterations > 1E+07 & spf > 1))
 ) %>% group_by(solver, target) %>% 
   summarise(time = mean(time, na.rm = T),
-            cost = mean(cost, na.rm = T))
+            cost = mean(cost, na.rm = T),
+            time_gur = mean(time_gur, na.rm = T),
+            cost_gur = mean(cost_gur, na.rm = T))
 
 rl_filt <- rl_filt %>%
-  mutate(deltaC = (cost - filter(rl_filt, solver == 'gurobi')$cost)/filter(rl_filt, solver == 'gurobi')$cost * 100,
-         deltaT = cost - filter(rl_filt, solver == 'gurobi')$cost,
-         deltaTM = (time - filter(rl_filt, solver == 'gurobi')$time)/filter(rl_filt, solver == 'gurobi')$time * 100,
-         deltaTT = time - filter(rl_filt, solver == 'gurobi')$time
-         )
-
-
-(p1 <- ggplot(data=rl_filt, aes(x = target, y = time, group = solver)) +
-    ggtitle("Marxan - ILP: # features = 72; # pu's = 148510; # iterations = 1E+08 \n mean time + mean cost for Marxan") +
-    ylab("Mean processing time [sec]") +
-    geom_line(aes(color=solver))+
-    geom_point(aes(color=solver)) +
-    scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target)    
-)
-
-(p2 <- ggplot(data=rl_filt, aes(x = target, y = deltaTM, group = solver)) +
-    ggtitle("Marxan - ILP: # features = 72; # pu's = 148510; # iterations = 1E+08 \n mean time + mean cost for Marxan") +
-    #ylab("Mean processing time [sec]") +
-    geom_line(aes(color=solver))+
-    geom_point(aes(color=solver)) +
-    geom_text(aes(label = ifelse(solver == "gurobi", "",as.character(paste0(round(deltaTM/100,2),""))), hjust = 0.5, vjust = -0.7)) +
-    
-    scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target) +
-    scale_y_continuous("Differnce to fastest solver [multiplier of best time]", labels = as.character(c(0, 200, 400, 600)), breaks = c(0, 20000, 40000, 60000))
-)
-
-
-(p3 <- ggplot(data=rl_filt, aes(x = target, y = cost, group = solver)) +
-    ggtitle("Marxan - ILP: # features = 72; # pu's = 148510; # iterations = 1E+08 \n mean time + mean cost for Marxan") +
-    ylab("Solution cost [$]") +
-    geom_line(aes(color=solver))+
-    geom_point(aes(color=solver))+
-    scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target)
-)
-
-(p4 <- ggplot(data=rl_filt, aes(x = target, y = deltaC, group = solver)) +
-    ggtitle("Marxan - ILP: # features = 72; # pu's = 148510; # iterations = 1E+08 \n mean time + mean cost for Marxan") +
-    ylab("Delta cost [%] with optimal cost as baseline") +
-    geom_line(aes(color=solver))+
-    geom_point(aes(color=solver)) +
-    geom_text(aes(label = ifelse(deltaT > 1000000,
-                                 as.character(paste0("$",round(deltaT/1000000,0),"M")),
-                                 ifelse(solver == "gurobi", paste0("$",round(cost/1000000,0),"M"),""))), hjust = 0.5, vjust = -0.7) +
-    scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target)
-  
+  mutate(deltaC = (cost - cost_gur)/cost_gur * 100,
+         deltaT = cost - cost_gur,
+         deltaTM = (time - time_gur)/time_gur * 100,
+         deltaTT = time - time_gur
 )
 
 
 
-rl_filt <- runs_long %>% filter(n_features == 72 & n_pu == 148510 & 
-                                  (solver != 'marxan' | (marxan_iterations > 10000 & spf > 1))) %>% 
-  group_by(solv_it, target) %>% 
-  summarise(time = mean(time, na.rm = T),
-            cost = mean(cost, na.rm = T))
-
-rl_filt <- rl_filt %>%
-  mutate(deltaC = (cost - filter(rl_filt, solv_it == 'gurobi')$cost)/filter(rl_filt, solv_it == 'gurobi')$cost * 100,
-         deltaT = cost - filter(rl_filt, solv_it == 'gurobi')$cost,
-         deltaTM = (time - filter(rl_filt, solv_it == 'gurobi')$time)/filter(rl_filt, solv_it == 'gurobi')$time * 100,
-         deltaTT = time - filter(rl_filt, solv_it == 'gurobi')$time
-  )
-
-
-(p5 <- ggplot(data=rl_filt, aes(x = target, y = time, group = solv_it)) +
-    ggtitle("Marxan - ILP: # features = 72; # pu's = 148510; # iterations > 10k \n mean time + mean cost for Marxan") +    ylab("Mean processing time [sec]") +
-    geom_line(aes(color=solv_it))+
-    geom_point(aes(color=solv_it)) +
-    scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target)    
-)
-
-(p6 <- ggplot(data=rl_filt, aes(x = target, y = deltaTM, group = solv_it)) +
-    ggtitle("Marxan - ILP: # features = 72; # pu's = 148510; # iterations = 1E+08 \n mean time + mean cost for Marxan") +
-    #ylab("Mean processing time [sec]") +
-    geom_line(aes(color=solv_it))+
-    geom_point(aes(color=solv_it)) +
-    geom_text(aes(label = ifelse(solv_it == "gurobi", "",as.character(paste0(round(deltaTM/100,2),""))), hjust = 0.5, vjust = -0.7)) +
-    
-    scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target) +
-    scale_y_continuous("Differnce to fastest solver [multiplier of best time]", labels = as.character(c(0, 200, 400, 600)), breaks = c(0, 20000, 40000, 60000))
-)
-
-
-(p7 <- ggplot(data=rl_filt, aes(x = target, y = cost, group = solv_it)) +
-    ggtitle("Marxan - ILP: # features = 72; # pu's = 148510; # iterations > 10k \n mean time + mean cost for Marxan") +    ylab("Solution cost [$]") +
-    geom_line(aes(color=solv_it))+
-    geom_point(aes(color=solv_it))+
-    scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target)
-)
-
-(p8 <- ggplot(data=rl_filt, aes(x = target, y = deltaC, group = solv_it)) +
-    ggtitle("Marxan - ILP: # features = 72; # pu's = 148510; # iterations > 10k \n mean time + mean cost for Marxan") +
-    ylab("Delta cost [%] with optimal cost as baseline") +
-    geom_line(aes(color=solv_it))+
-    geom_point(aes(color=solv_it)) +
-    scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target)
-  
-)
-
-
-
-rl_filt <- runs_long %>% filter(n_features == 72 & n_pu == 594040 & 
-                                  (solver != 'marxan' | (marxan_iterations > 1E+07 & spf > 1))
-) %>% group_by(solver, target) %>% 
-  summarise(time = mean(time, na.rm = T),
-            cost = mean(cost, na.rm = T))
-
-rl_filt <- rl_filt %>%
-  mutate(deltaC = (cost - filter(rl_filt, solver == 'gurobi')$cost)/filter(rl_filt, solver == 'gurobi')$cost * 100,
-         deltaT = cost - filter(rl_filt, solver == 'gurobi')$cost,
-         deltaTM = (time - filter(rl_filt, solver == 'gurobi')$time)/filter(rl_filt, solver == 'gurobi')$time * 100,
-         deltaTT = time - filter(rl_filt, solver == 'gurobi')$time
-  )
-
-
-(p9 <- ggplot(data=rl_filt, aes(x = target, y = time, group = solver)) +
-    ggtitle("Marxan - ILP: # features = 72; # pu's = 594040; # iterations = 1E+08 \n mean time + mean cost for Marxan") +
-    ylab("Mean processing time [sec]") +
-    geom_line(aes(color=solver))+
-    geom_point(aes(color=solver)) +
-    scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target)    
-)
-
-(p10 <- ggplot(data=rl_filt, aes(x = target, y = deltaTM, group = solver)) +
-    ggtitle("Marxan - ILP: # features = 72; # pu's = 594040; # iterations = 1E+08 \n mean time + mean cost for Marxan") +
-    #ylab("Mean processing time [sec]") +
-    geom_line(aes(color=solver))+
-    geom_point(aes(color=solver)) +
-    geom_text(aes(label = ifelse(solver == "gurobi", "",as.character(paste0(round(deltaTM/100,2),""))), hjust = 0.5, vjust = -0.7)) +
-    
-    scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target) +
-    scale_y_continuous("Differnce to fastest solver [multiplier of best time]", labels = as.character(c(0, 200, 400, 600)), breaks = c(0, 20000, 40000, 60000))
-)
-
-
-(p11 <- ggplot(data=rl_filt, aes(x = target, y = cost, group = solver)) +
-    ggtitle("Marxan - ILP: # features = 72; # pu's = 594040; # iterations = 1E+08 \n mean time + mean cost for Marxan") +
-    ylab("Solution cost [$]") +
-    geom_line(aes(color=solver))+
-    geom_point(aes(color=solver))+
-    scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target)
-)
-
-(p12 <- ggplot(data=rl_filt, aes(x = target, y = deltaC, group = solver)) +
-    ggtitle("Marxan - ILP: # features = 72; # pu's = 594040; # iterations = 1E+08 \n mean time + mean cost for Marxan") +
-    ylab("Delta cost [%] with optimal cost as baseline") +
-    geom_line(aes(color=solver))+
-    geom_point(aes(color=solver)) +
-    geom_text(aes(label = ifelse(deltaT > 1000000,
-                                 as.character(paste0("$",round(deltaT/1000000,0),"M")),
-                                 ifelse(solver == "gurobi", paste0("$",round(cost/1000000,0),"M"),""))), hjust = 0.5, vjust = -0.7) +
-    scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target)
-  
-)
-
-
-
-ggsave(here("figures","p1.png"), p1)
-ggsave(here("figures","p2.png"), p2)
-ggsave(here("figures","p3.png"), p3)
-ggsave(here("figures","p4.png"), p4)
-ggsave(here("figures","p5.png"), p5)
-ggsave(here("figures","p6.png"), p6)
-ggsave(here("figures","p7.png"), p7)
-ggsave(here("figures","p8.png"), p8)
-ggsave(here("figures","p9.png"), p9)
-ggsave(here("figures","p10.png"), p10)
-ggsave(here("figures","p11.png"), p11)
-ggsave(here("figures","p12.png"), p12)
-
-
-(deltas <- runs_long %>% mutate(deltaTM = (time - filter(runs_long, solver == 'gurobi')$time)/filter(runs_long, solver == 'gurobi')$time * 100,
-                             deltaTT = time - filter(runs_long, solver == 'gurobi')$time,
-                             deltaC = (cost - filter(runs_long, solver == 'gurobi')$cost)/filter(runs_long, solver == 'gurobi')$cost * 100
-                             ) %>% group_by(solver) %>% summarise(avg_time = mean(deltaTM)/100,
-                                                                  max_time = max(deltaTM)/100,
-                                                                  min_time = min(deltaTM)/100,
-                                                                  avg_cost = mean(deltaC, na.rm = T),
-                                                                  max_cost = max(deltaC, na.rm = T),
-                                                                  min_cost = min(deltaC, na.rm = T))
+(deltas <- runs_long %>% mutate(deltaTM = (time - time_gur)/time_gur * 100,
+                                deltaTT = time - time_gur,
+                                deltaC = (cost - cost_gur)/cost_gur * 100
+) %>% group_by(solver) %>% summarise(avg_time = mean(deltaTM)/100,
+                                     max_time = max(deltaTM)/100,
+                                     min_time = min(deltaTM)/100,
+                                     avg_cost = mean(deltaC, na.rm = T),
+                                     max_cost = max(deltaC, na.rm = T),
+                                     min_cost = min(deltaC, na.rm = T))
 ) 
 
 
@@ -369,59 +215,3 @@ out_tb <- tibble(species = tot_amount$species, tot_amount = tot_amount$tot_amoun
                  g1 = amount_g1$g1_amount, g2 = amount_g2$g2_amount) %>%
                   mutate(g1_perc = g1/tot_amount*100, g2_perc = g2/tot_amount*100, incr = g2_perc - g1_perc)
   
-
-
-
-
-##############
-## run times
-##############
-
-runs_complete <- runs_long %>% filter(run_id <200)
-(time_sum <- runs_complete %>% group_by(solver) %>% summarise(min_t = min(time),
-                                                              mean_t = mean(time),
-                                                              max_t = max(time)))
-
-
-rr <- runs_complete %>% filter(solver == "marxan", marxan_iterations == 100000000, spf == 25) 
-ss <- rr %>% group_by(n_features, n_pu)
-
-pp <- function(x, title = "", y.var) {
-  #x.var <- enquo(x.var)
-  y.var <- enquo(y.var)
-  ggplot(x, 
-         aes(x = target, y = !! y.var, colour = as.factor(n_pu) , shape = as.factor(n_features), 
-             group = interaction(n_features, n_pu))) +
-    scale_colour_discrete(name  ="Planning units") +
-    scale_shape_discrete(name  ="Features") + 
-    geom_line() +
-    geom_point() + 
-    ggtitle(title) +
-    theme_bw()
-}
-
-
-pp(runs_complete %>% filter(solver == "gurobi"), "Gurobi", time)
-                         
-pp(runs_complete %>% filter(solver == "rsymphony"), "SYMPHONY", time)
-
-pp(rr, "Marxan", time)
-
-
-r2 <- runs_complete %>% filter(solver == "gurobi" | solver == "rsymphony" | (solver == "marxan" & marxan_iterations == 100000000 & spf == 25))
-r2 <- r2 %>% group_by(solver)
-
-r2 <- r2 %>% mutate(tt = (time - filter(r2, solver == 'gurobi')$time)/filter(r2, solver == 'gurobi')$time,
-                    cc = (cost - filter(r2, solver == 'gurobi')$cost)/filter(r2, solver == 'gurobi')$cost)
-
-pp(r2 %>% filter(solver == "rsymphony"), "SYMPHONY", tt)
-
-pp(r2 %>% filter(solver == "marxan"), "Marxan", tt)
-
-
-pp(r2 %>% filter(solver == "rsymphony"), "SYMPHONY", cc)
-
-pp(r2 %>% filter(solver == "marxan"), "Marxan vs Gurobi; #iterations = 1E+08; SPF = 25", cc * 100)
-
-pp(r2 %>% filter(solver == "marxan"), "Marxan", tt)
-
