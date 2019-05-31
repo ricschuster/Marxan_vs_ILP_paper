@@ -1,16 +1,15 @@
 ---
-output:
-  html_document: default
-  pdf_document: 
+title: "a"
+output: 
+  pdf_document:
     fig_caption: yes
-  word_document: default
 header-includes:
 - \usepackage{caption}
 ---
 
 \captionsetup[table]{labelformat=empty}
 
-```{r setup, include=FALSE, echo = FALSE,}
+```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
 library(raster)
@@ -87,13 +86,18 @@ Richard Schuster, Jeffrey O. Hanson, Matt Strimas-Mackey, Joseph R. Bennett.
 
 
 \newpage
+```{r pressure, echo=FALSE, fig.cap="Figure S3: Cost profile for SYMPHONY solver."}
+plot(pressure)
+```
+\newpage
+
 ```{r TableS1, echo = FALSE, message = FALSE, results = "asis"}
 knitr::kable(spp[,-1], caption = "**Table S1**: List of species that were used as features in our analysis.")
 ```
 
 \newpage
 
-```{r, echo = FALSE, fig.cap = "**Figure S1**: Cost savings Gurobi vs Marxan"}
+```{r FigS1, echo = FALSE, fig.cap = "**Figure S1**: Cost savings Gurobi vs Marxan"}
 pp(rr_marxan_compl %>% filter(solver == "marxan" & marxan_iterations > 1E+07 & spf > 1 & spf < 125), "Marxan vs Gurobi; #iterations > 100,000; SPF = 5 or 25", cost_perc)
 
 ```
