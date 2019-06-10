@@ -55,7 +55,7 @@ pus <- here("data", "nplcc_planning-units.tif") %>%
 # define run matrix
 marxan_runs <- expand.grid(
   marxan_iterations = 1e8,
-  spf = 10
+  spf = 25
 )
 runs <- expand.grid(target = seq(0.1, 0.9, by = 0.1),
                     n_features = 72,
@@ -261,7 +261,7 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
   r$marxan <- list(r_marxan)
   # save this iteration in case of crashing
   str_glue_data(r, "run-", run,
-                "_target-{target}_features-{n_features}_pu-{n_pu}.rds") %>%
+                "_target-{target}_features-{n_features}_pu-{n_pu}_blm-{blm}.rds") %>%
     file.path(runs_dir, .) %>%
     saveRDS(r, .)
   r
