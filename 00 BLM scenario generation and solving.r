@@ -131,7 +131,7 @@ bnd_df <- data.frame(id1 = tmp.r[][smm_mat$i],
 runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
   r <- runs[run, ]
   str_glue_data(r, "Run ", run, 
-                ": Target {target}; Features {n_features}; PUs {n_pu}") %>% 
+                ": Target {target}; Features {n_features}; PUs {n_pu}; BLM {blm}") %>% 
     message()
   
   
@@ -182,7 +182,7 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
                              cost = attr(s_sym$result, "objective"), 
                              time = s_sym$time[["elapsed"]]))
   # save solution
-  s_sym <- "rsymphony_target-{target}_features-{n_features}_pu-{n_pu}.tif" %>% 
+  s_sym <- "rsymphony_target-{target}_features-{n_features}_pu-{n_pu}_blm-{blm}.tif" %>% 
     str_glue_data(r, .) %>% 
     file.path(rsymphony_dir, .) %>% 
     writeRaster(solution_to_raster(s_sym$result, pus), .)
@@ -194,7 +194,7 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
                          mutate(spf = 1) %>%
                          select(id, target = amount, spf, name),
                        puvspecies = select(rij, species, pu, amount),
-                       boundary = NULL, skipchecks = TRUE)
+                       boundary = bnd_df, skipchecks = TRUE)
   # loop over marxan iterations
   r_marxan <- foreach(i_marxan = seq_len(nrow(r$marxan[[1]])),
                       .combine = bind_rows, .packages = pkg_list) %dopar% {
@@ -224,7 +224,7 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
                         # save
                         if (!is.null(m_results)) {
                           str_glue_data(cbind(r, r_marxan),
-                                        "marxan_target-{target}_features-{n_features}_pu-{n_pu}_",
+                                        "marxan_target-{target}_features-{n_features}_pu-{n_pu}_blm-{blm}_",
                                         "spf-{spf}_iters-{marxan_iterations}.csv") %>%
                             file.path(marxan_dir, .) %>%
                             write_csv(m_results@summary, .)
@@ -242,7 +242,7 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
                               mutate(id = str_replace(id, "^P", "") %>% as.numeric()) %>%
                               solution_to_raster(pus)
                             str_glue_data(cbind(r, r_marxan),
-                                          "marxan_target-{target}_features-{n_features}_pu-{n_pu}_",
+                                          "marxan_target-{target}_features-{n_features}_pu-{n_pu}_blm-{blm}_",
                                           "spf-{spf}_iters-{marxan_iterations}.tif") %>%
                               file.path(marxan_dir, .) %>%
                               writeRaster(s_mar, .)
@@ -281,7 +281,7 @@ runs_m <- runs %>%
   select(run_id, solver, target, n_features, n_pu, species, marxan) %>% 
   unnest()
 runs_long <- bind_rows(runs_g, runs_s, runs_m)
-write_csv(runs_long, here("output_blm", "ilp-comparison-runs2.csv"))
+write_csv(runs_long, here("output_blm", "ilp-comparison-runs.csv"))
 
 # clean up
 stopCluster(cl)
