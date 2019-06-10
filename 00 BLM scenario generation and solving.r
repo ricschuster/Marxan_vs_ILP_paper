@@ -104,10 +104,6 @@ solution_to_raster <- function(x, y) {
 
 set.seed(1)
 
-# sample species and planning units
-features <- species %>% 
-  select(id, name = species_code) %>% 
-  as.data.frame(stringsAsFactors = FALSE)
 
 tt <- here("data", "nplcc_planning-units.tif") %>% 
   raster()
@@ -136,6 +132,10 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
   
   
   
+  # sample species and planning units
+  features <- species %>% 
+    select(id, name = species_code) %>% 
+    as.data.frame(stringsAsFactors = FALSE)
   
   r$species <- paste(features$name, collapse = ",")
   pu_ss <- pus
