@@ -54,26 +54,17 @@ pus <- here("data", "nplcc_planning-units.tif") %>%
 
 # define run matrix
 marxan_runs <- expand.grid(
-  marxan_iterations = c(1e4, 1e5, 1e6, 1e7, 1e8),
-  spf = 5^(0:3)
+  marxan_iterations = 1e8,
+  spf = 10
 )
 runs <- expand.grid(target = seq(0.1, 0.9, by = 0.1),
-                     n_features = round(seq(10, 72, length.out = 5)),
-                     n_pu = round(nrow(cost) / 4^(4:2))) %>%
+                     n_features = 72,
+                     n_pu = 50000,
+                    blm = c(0.01, 0.1, 1, 10)) %>%
   # add marxan specific parameters
   mutate(marxan = list(marxan_runs),
-         run_id = row_number()) %>%
+         run_id = 300 + row_number()) %>%
   select(run_id, everything())
-
-# # for testing
-# marxan_runs <- expand.grid(marxan_iterations = c(1e5, 1e6), spf = c(5, 25))
-# runs <- expand.grid(target = c(0.25, 0.5),
-#                     n_features = c(10, nrow(species)),
-#                     n_pu = round(nrow(cost) / 4^c(4, 3))) %>%
-#   # add marxan specific parameters
-#   mutate(marxan = list(marxan_runs),
-#          run_id = row_number()) %>%
-#   select(run_id, everything())
 
 # fixed run parameters
 ilp_gap <- 0.001
@@ -90,16 +81,16 @@ stopifnot(file.exists(marxan_path))
 # iterate over runs ----
 
 # clean up old files
-gurobi_dir <- here("output", "gurobi")
+gurobi_dir <- here("output_blm", "gurobi")
 #unlink(gurobi_dir, recursive = TRUE)
 dir.create(gurobi_dir)
-rsymphony_dir <- here("output", "rsymphony")
+rsymphony_dir <- here("output_blm", "rsymphony")
 #unlink(rsymphony_dir, recursive = TRUE)
 dir.create(rsymphony_dir)
-marxan_dir <- here("output", "marxan")
+marxan_dir <- here("output_blm", "marxan")
 #unlink(marxan_dir, recursive = TRUE)
 dir.create(marxan_dir)
-runs_dir <- here("output", "runs")
+runs_dir <- here("output_blm", "runs")
 #unlink(runs_dir, recursive = TRUE)
 dir.create(runs_dir)
 
@@ -119,6 +110,14 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
     message()
   
   # sample species and planning units
+  tt <- here("data", "nplcc_planning-units.tif") %>% 
+    raster()
+  
+  tt[] <- 1:ncell(tt)
+  
+  e <- extent(560000, 560000 + 22500, 5300000 - 22500, 5300000)
+  tmp.r <- crop(tt, e)
+  
   if (random_subset) {
     features <- species %>% 
       select(id, name = species_code) %>% 
@@ -281,7 +280,7 @@ runs_m <- runs %>%
   select(run_id, solver, target, n_features, n_pu, species, marxan) %>% 
   unnest()
 runs_long <- bind_rows(runs_g, runs_s, runs_m)
-write_csv(runs_long, here("output", "ilp-comparison-runs2.csv"))
+write_csv(runs_long, here("output_blm", "ilp-comparison-runs2.csv"))
 
 # clean up
 stopCluster(cl)
