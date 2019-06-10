@@ -59,7 +59,7 @@ marxan_runs <- expand.grid(
 )
 runs <- expand.grid(target = seq(0.1, 0.9, by = 0.1),
                      n_features = 72,
-                     n_pu = 50000,
+                     n_pu = 50625,
                     blm = c(0.01, 0.1, 1, 10)) %>%
   # add marxan specific parameters
   mutate(marxan = list(marxan_runs),
@@ -103,40 +103,44 @@ solution_to_raster <- function(x, y) {
 }
 
 set.seed(1)
+
+# sample species and planning units
+features <- species %>% 
+  select(id, name = species_code) %>% 
+  as.data.frame(stringsAsFactors = FALSE)
+
+tt <- here("data", "nplcc_planning-units.tif") %>% 
+  raster()
+
+tt[] <- 1:ncell(tt)
+
+e <- extent(560000, 560000 + 22500, 5300000 - 22500, 5300000)
+tmp.r <- crop(tt, e)
+
+cost_ss <- cost[cost$id %in% tmp.r[], ] %>% 
+  arrange(id)
+
+
+tmp.p <- rasterToPolygons(tmp.r)
+bnd_mat <- boundary_matrix(tmp.p, str_tree = TRUE)
+
+bnd_mat <- boundary_matrix(tmp.r)
+smm_mat <- summary(bnd_mat)
+# df <- as.data.frame(as.matrix(bnd_mat))
+
+bnd_df <- data.frame(id1 = tmp.r[][smm_mat$i],
+           id2 = tmp.r[][smm_mat$j],
+           amount = round(smm_mat$x,0))
+
 runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
   r <- runs[run, ]
   str_glue_data(r, "Run ", run, 
                 ": Target {target}; Features {n_features}; PUs {n_pu}") %>% 
     message()
   
-  # sample species and planning units
-  tt <- here("data", "nplcc_planning-units.tif") %>% 
-    raster()
+
   
-  tt[] <- 1:ncell(tt)
-  
-  e <- extent(560000, 560000 + 22500, 5300000 - 22500, 5300000)
-  tmp.r <- crop(tt, e)
-  
-  if (random_subset) {
-    features <- species %>% 
-      select(id, name = species_code) %>% 
-      sample_n(size = r$n_features, replace = FALSE) %>% 
-      arrange(id) %>% 
-      as.data.frame(stringsAsFactors = FALSE)
-    cost_ss <- cost %>% 
-      sample_n(size = r$n_pu, replace = FALSE) %>% 
-      arrange(id)
-  } else {
-    features <- species %>% 
-      select(id, name = species_code) %>% 
-      slice(seq_len(r$n_features)) %>% 
-      arrange(id) %>% 
-      as.data.frame(stringsAsFactors = FALSE)
-    cost_ss <- cost %>% 
-      slice(seq_len(r$n_pu)) %>% 
-      arrange(id)
-  }
+
   r$species <- paste(features$name, collapse = ",")
   pu_ss <- pus
   pu_ss[cost_ss$id] <- 0
@@ -158,8 +162,8 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
     add_binary_decisions()
   # gurobi
   s_gur <- p %>% 
-    add_gurobi_solver(gap = ilp_gap) %>% 
-    prioritizr_timed()
+    add_gurobi_solver(gap = ilp_gap) %>%
+    prioritizr_timed(force = TRUE)
   # solution summary
   cost_gurobi <- attr(s_gur$result, "objective")
   r$gurobi <- list(tibble(n_solutions = 1,
@@ -175,7 +179,7 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
   # symphony
   s_sym <- p %>% 
     add_rsymphony_solver(gap = ilp_gap * cost_gurobi) %>% 
-    prioritizr_timed()
+    prioritizr_timed(force = TRUE)
   # solution summary
   r$rsymphony <- list(tibble(n_solutions = 1,
                              cost = attr(s_sym$result, "objective"), 
