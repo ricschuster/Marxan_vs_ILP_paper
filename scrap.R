@@ -229,6 +229,17 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows, .packages = pkg
    r
 }
 
+setwd(here("output_blm2/runs/"))
+fls <- list.files()
+runs_2 <- readRDS(fls[1])
+
+for(ii in 2:length(fls)){
+  tmp <- readRDS(fls[ii])
+  runs_2 <- rbind(runs_2, tmp)
+  
+  rm(tmp)
+}
+
 # unnest
 runs_g <- runs %>% 
   mutate(solver = "gurobi") %>% 
@@ -238,12 +249,12 @@ runs_s <- runs %>%
   mutate(solver = "rsymphony") %>% 
   select(run_id, solver, target, n_features, n_pu, species, rsymphony) %>% 
   unnest()
-runs_m <- runs %>% 
+runs_m <- runs_2 %>% 
   mutate(solver = "marxan") %>% 
   select(run_id, solver, target, n_features, n_pu, species, marxan) %>% 
   unnest()
 runs_long <- bind_rows(runs_g, runs_s, runs_m)
-write_csv(runs_long, here("output_blm2", "ilp-comparison-runs.csv"))
+write_csv(runs_m, "ilp-comparison-runs.csv")
 
 # clean up
 stopCluster(cl)
