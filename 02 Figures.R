@@ -5,6 +5,9 @@ library(uuid)
 library(here)
 library(tidyverse)
 library(prioritizr)
+library(sf)
+library(RColorBrewer)
+
 pkg_list <- c("raster", "prioritizr", "marxan", "uuid",  "here", "tidyverse")
 select <- dplyr::select
 walk(list.files("R", full.names = TRUE), source)
@@ -157,4 +160,63 @@ pp(rr_marxan_compl %>% filter(solver == "marxan") %>% group_by(target, n_feature
      summarise(time = mean(time)), "Marxan", time)
 
 
+### BLM
+# natural earth political boundaries
+# natural earth political boundaries
+ne_land <- read_sf("data/ne-land.gpkg") %>% st_geometry()
+ne_country_lines <- read_sf("data/ne-country-lines.gpkg") %>% st_geometry()
+ne_state_lines <- read_sf("data/ne-state-lines.gpkg") %>% st_geometry()
 
+gr_rast <- stack(list.files(here("output_blm/gurobi/"), full.names = TRUE))
+sy_rast <- stack(list.files(here("output_blm/rsymphony/"), full.names = TRUE))
+ma_rast <- stack(list.files(here("output_blm/marxan//"), pattern = "*.tif", full.names = TRUE))
+
+
+land <- st_transform(ne_land, crs = proj4string(gr_rast))
+country <- st_transform(ne_country_lines, crs = proj4string(gr_rast))
+state <- st_transform(ne_state_lines, crs = proj4string(gr_rast))
+
+e <- extent(560000, 560000 + 22500, 5300000 - 22500, 5300000)
+gr_rast <- crop(gr_rast, e)
+sy_rast <- crop(sy_rast, e)
+ma_rast <- crop(ma_rast, e)
+
+# crs <- "+proj=moll +lon_0=-90 +x_0=0 +y_0=0 +ellps=WGS84"
+# ll <- ll %>% projectRaster(crs = crs, method = "ngb")
+
+plot(ll)
+
+palette <- c("Greens", "Blues", "YlOrRd", "Reds")
+pal <- brewer.pal(9, palette[3])[2:9]
+pal <- colorRampPalette(pal)
+#pal <- colorQuantile(pal, values(abd_plot[[f2[ii]]]), n = 8, #probs = seq(0, 1, length.out = n + 1),
+#              na.color = "#808080", alpha = FALSE, reverse = FALSE)
+plot(ll,  col = pal(256), legend = FALSE, 
+     maxpixels = ncell(ll))
+
+
+gr_rast <- setExtent(gr_rast, tt)
+
+# process for visualization
+crs <- "+proj=moll +lon_0=-90 +x_0=0 +y_0=0 +ellps=WGS84"
+
+extent_na <- function(x) {
+  pts <- raster::rasterToPoints(x)
+  x_rng <- range(pts[, "x"])
+  y_rng <- range(pts[, "y"])
+  raster::extent(x_rng[1] - res(x)[1] / 2, x_rng[2] + res(x)[1] / 2,
+                 y_rng[1] - res(x)[2] / 2, y_rng[2] + res(x)[2] / 2)
+}
+
+tt <-extent_na(gr_rast[[1]])
+
+
+gr_rast2 <- gr_rast[[1:2]] %>% 
+  stem_to_na() %>% 
+  projectRaster(crs = crs, method = "ngb") %>% 
+  #sqrt() %>% 
+  stem_crop()
+
+
+ggplot() +
+  geom_raster(data= gr_rast[[1]], aes(x=x, y=y))
