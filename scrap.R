@@ -167,7 +167,7 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows, .packages = pkg
                         # data
                         m_data@species$spf <- r_marxan$spf
                         # options
-                        m_opts <- MarxanOpts(BLM = 0, NCORES = 1L, VERBOSITY = 3L)
+                        m_opts <- MarxanOpts(BLM = r$blm, NCORES = 1L, VERBOSITY = 3L)
                         m_opts@NUMREPS <- as.integer(marxan_reps)
                         m_opts@NUMITNS <- as.integer(r_marxan$marxan_iterations)
                         m_opts@NUMTEMP <- as.integer(ceiling(m_opts@NUMITNS * 0.2))
