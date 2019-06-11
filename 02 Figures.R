@@ -181,42 +181,60 @@ gr_rast <- crop(gr_rast, e)
 sy_rast <- crop(sy_rast, e)
 ma_rast <- crop(ma_rast, e)
 
-# crs <- "+proj=moll +lon_0=-90 +x_0=0 +y_0=0 +ellps=WGS84"
-# ll <- ll %>% projectRaster(crs = crs, method = "ngb")
+mybb <- cbind(x=c(560000, 560000 + 22500, 560000 + 22500, 560000), 
+              y=c(5300000 - 22500, 5300000 - 22500, 5300000, 5300000))
+mybb <- SpatialPolygons(list(Polygons(list(Polygon(mybb)),"1")), proj4string=CRS(proj4string(gr_rast)))
 
-plot(ll)
+## BLM comparison figure
+# here("Figures", paste0("Figure3", ".png")) %>% 
+#   png(width = 3000, height = 3000, res = 300)
 
-palette <- c("Greens", "Blues", "YlOrRd", "Reds")
-pal <- brewer.pal(9, palette[3])[2:9]
-pal <- colorRampPalette(pal)
-#pal <- colorQuantile(pal, values(abd_plot[[f2[ii]]]), n = 8, #probs = seq(0, 1, length.out = n + 1),
-#              na.color = "#808080", alpha = FALSE, reverse = FALSE)
-plot(ll,  col = pal(256), legend = FALSE, 
-     maxpixels = ncell(ll))
+ll <- list()
+for(ii in 1:5){
+  ll <- c(ll, gr_rast[[ii]], sy_rast[[ii]], ma_rast[[ii]])
+  
+}
+out_r <- stack(ll)
 
+par(mfrow=c(5,3))
+par(mar = c(0.1, 0.1, 0.1, 0.1), oma = c(0,0,0,0), bg = "white")
 
-gr_rast <- setExtent(gr_rast, tt)
-
-# process for visualization
-crs <- "+proj=moll +lon_0=-90 +x_0=0 +y_0=0 +ellps=WGS84"
-
-extent_na <- function(x) {
-  pts <- raster::rasterToPoints(x)
-  x_rng <- range(pts[, "x"])
-  y_rng <- range(pts[, "y"])
-  raster::extent(x_rng[1] - res(x)[1] / 2, x_rng[2] + res(x)[1] / 2,
-                 y_rng[1] - res(x)[2] / 2, y_rng[2] + res(x)[2] / 2)
+for (ii in 1:nlayers(out_r)) {
+  # print map
+  plot(land, col = "grey85", border = NA, xlim = e[1:2], ylim = e[3:4])
+  
+  pal <- brewer.pal(9, palette[3])[2:9]
+  pal <- colorRampPalette(pal)
+  #pal <- colorQuantile(pal, values(abd_plot[[f1[ii]]]), n = 8, #probs = seq(0, 1, length.out = n + 1),
+  #              na.color = "#808080", alpha = FALSE, reverse = FALSE)
+  plot(out_r[[ii]], add = TRUE, col = pal(256), legend = FALSE, 
+       maxpixels = ncell(out_r))
+  # if(lh[[ii]]){
+  #   add_legend("", pal, legend_offsets[3], low_high = lh[ii],
+  #              text_col = text_col)
+  # }
+  
+  # boundaries
+  plot(mybb, lwd = 1, add = TRUE)
+  plot(state, col = "black", lwd = 0.5, lty = 1, add = TRUE)
+  plot(country, col = "black", lwd = 1, add = TRUE)
+  
+  # # title
+  # # plot bounds
+  # usr <- par("usr")
+  # xwidth <- usr[2] - usr[1]
+  # yheight <- usr[4] - usr[3]
+  # # labels
+  # text(x = usr[1] + 0.05 * xwidth, y = usr[3] + 0.21 * yheight,
+  #      labels = title[ii], pos = 4, font = 1, cex = 1.2 * scl, col = text_col)
+  # 
+  # text(x = usr[1] + 0.1 * xwidth, y = usr[3] + 0.4 * yheight,
+  #      labels = pll[ii], pos = 4, font = 1, cex = 1.5 * scl, col = text_col)
+  # 
+  #rasterImage(logo,usr[1] + 0.01 * xwidth, usr[3] + 0.03 * yheight,
+  #            usr[1] + 0.38 * xwidth, usr[3] + 0.09 * yheight)
+  
 }
 
-tt <-extent_na(gr_rast[[1]])
+# dev.off()
 
-
-gr_rast2 <- gr_rast[[1:2]] %>% 
-  stem_to_na() %>% 
-  projectRaster(crs = crs, method = "ngb") %>% 
-  #sqrt() %>% 
-  stem_crop()
-
-
-ggplot() +
-  geom_raster(data= gr_rast[[1]], aes(x=x, y=y))
