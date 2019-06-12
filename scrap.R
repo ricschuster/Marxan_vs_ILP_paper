@@ -255,7 +255,7 @@ runs_m <- runs_2 %>%
   select(run_id, solver, target, n_features, n_pu, species, marxan) %>% 
   unnest()
 runs_long <- bind_rows(runs_g, runs_s, runs_m)
-write_csv(runs_m, "ilp-comparison-runs.csv")
+write_csv(runs_m, "ilp-comparison-runs_marx.csv")
 
 # clean up
 stopCluster(cl)
