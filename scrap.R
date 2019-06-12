@@ -252,7 +252,7 @@ runs_s <- runs %>%
   unnest()
 runs_m <- runs_2 %>% 
   mutate(solver = "marxan") %>% 
-  select(run_id, solver, target, n_features, n_pu, species, marxan) %>% 
+  select(run_id, solver, target, n_features, n_pu, species, blm, marxan) %>% 
   unnest()
 runs_long <- bind_rows(runs_g, runs_s, runs_m)
 write_csv(runs_m, "ilp-comparison-runs_marx.csv")

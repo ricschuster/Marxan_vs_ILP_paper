@@ -185,9 +185,9 @@ mybb <- cbind(x=c(560000, 560000 + 22500, 560000 + 22500, 560000),
               y=c(5300000 - 22500, 5300000 - 22500, 5300000, 5300000))
 mybb <- SpatialPolygons(list(Polygons(list(Polygon(mybb)),"1")), proj4string=CRS(proj4string(gr_rast)))
 
-## BLM comparison figure
-# here("Figures", paste0("Figure3", ".png")) %>% 
-#   png(width = 3000, height = 3000, res = 300)
+# BLM comparison figure
+here("Figures", paste0("Figure3", ".png")) %>%
+  png(width = 2000, height = 3000, res = 300)
 
 ll <- list()
 for(ii in 1:5){
@@ -197,13 +197,23 @@ for(ii in 1:5){
 out_r <- stack(ll)
 
 par(mfrow=c(5,3))
-par(mar = c(0.1, 0.1, 0.1, 0.1), oma = c(0,0,0,0), bg = "white")
+par(mar = c(0.1, 0.1, 0.1, 0.1), oma = c(0,3.5,1.5,0), bg = "white")
+
+titl <- c("Gurobi", "Symphony", "Marxan",
+          rep("", 12))
+ylab <- c(0.1, "", "",
+          1, "", "",
+          10, "", "",
+          100, "", "",
+          1000, "", "")
+
 
 for (ii in 1:nlayers(out_r)) {
   # print map
-  plot(land, col = "grey85", border = NA, xlim = e[1:2], ylim = e[3:4])
-  
-  pal <- brewer.pal(9, palette[3])[2:9]
+  plot(land, col = "white", border = NA, xlim = e[1:2], ylim = e[3:4])
+  #title(titl[ii], cex.main = 1.5)
+  palette <- c("Greens", "Blues", "YlOrRd", "Reds")
+  pal <- brewer.pal(9, palette[1])[2:9]
   pal <- colorRampPalette(pal)
   #pal <- colorQuantile(pal, values(abd_plot[[f1[ii]]]), n = 8, #probs = seq(0, 1, length.out = n + 1),
   #              na.color = "#808080", alpha = FALSE, reverse = FALSE)
@@ -221,12 +231,12 @@ for (ii in 1:nlayers(out_r)) {
   
   # # title
   # # plot bounds
-  # usr <- par("usr")
-  # xwidth <- usr[2] - usr[1]
-  # yheight <- usr[4] - usr[3]
-  # # labels
-  # text(x = usr[1] + 0.05 * xwidth, y = usr[3] + 0.21 * yheight,
-  #      labels = title[ii], pos = 4, font = 1, cex = 1.2 * scl, col = text_col)
+   usr <- par("usr")
+   xwidth <- usr[2] - usr[1]
+   yheight <- usr[4] - usr[3]
+   # labels
+   # text(x = usr[1] - 0.1 * xwidth, y = usr[3] + 0.5 * yheight,
+        # labels = ylab[ii], pos = 4, font = 1, cex = 1.5 , col = "black")
   # 
   # text(x = usr[1] + 0.1 * xwidth, y = usr[3] + 0.4 * yheight,
   #      labels = pll[ii], pos = 4, font = 1, cex = 1.5 * scl, col = text_col)
@@ -236,5 +246,15 @@ for (ii in 1:nlayers(out_r)) {
   
 }
 
-# dev.off()
+mtext("Gurobi", side=3, at = 0.16, cex=1, col="black", outer=TRUE) 
+mtext("Symphony", side=3, at = 0.5, cex=1, col="black", outer=TRUE) 
+mtext("Marxan", side=3, at = 0.825, cex=1, col="black", outer=TRUE) 
 
+mtext("0.1", side=2, at = 0.9, cex=1, col="black", outer=TRUE, las = 1) 
+mtext("1", side=2, at = 0.7, cex=1, col="black", outer=TRUE, las = 1) 
+mtext("10", side=2, at = 0.5, cex=1, col="black", outer=TRUE, las = 1) 
+mtext("100", side=2, at = 0.3, cex=1, col="black", outer=TRUE, las = 1) 
+mtext("1,000", side=2, at = 0.1, cex=1, col="black", outer=TRUE, las = 1) 
+
+ dev.off()
+ # 
