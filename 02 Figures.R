@@ -186,7 +186,7 @@ mybb <- cbind(x=c(560000, 560000 + 22500, 560000 + 22500, 560000),
 mybb <- SpatialPolygons(list(Polygons(list(Polygon(mybb)),"1")), proj4string=CRS(proj4string(gr_rast)))
 
 # BLM comparison figure
-here("Figures", paste0("Figure3", ".png")) %>%
+here("Figures", paste0("Figure 3", ".png")) %>%
   png(width = 2000, height = 3000, res = 300)
 
 ll <- list()
@@ -199,13 +199,13 @@ out_r <- stack(ll)
 par(mfrow=c(5,3))
 par(mar = c(0.1, 0.1, 0.1, 0.1), oma = c(0,3.5,1.5,0), bg = "white")
 
-titl <- c("Gurobi", "Symphony", "Marxan",
-          rep("", 12))
-ylab <- c(0.1, "", "",
-          1, "", "",
-          10, "", "",
-          100, "", "",
-          1000, "", "")
+# titl <- c("Gurobi", "Symphony", "Marxan",
+#           rep("", 12))
+# ylab <- c(0.1, "", "",
+#           1, "", "",
+#           10, "", "",
+#           100, "", "",
+#           1000, "", "")
 
 
 for (ii in 1:nlayers(out_r)) {
@@ -258,3 +258,70 @@ mtext("1,000", side=2, at = 0.1, cex=1, col="black", outer=TRUE, las = 1)
 
  dev.off()
  # 
+
+
+ 
+# Post-processing BLM results
+runs_long <- read_csv(here("output_blm/", "ilp-comparison-runs.csv"))
+runs_long <- runs_long %>% mutate(solv_it = ifelse(!is.na(marxan_iterations), paste(solver, marxan_iterations, sep="_"), solver)) 
+
+runs_gur <- runs_long %>% filter(solver == 'gurobi') %>% mutate(cost_gur = cost, time_gur = time) %>% select(run_id, cost_gur, time_gur)
+
+runs_long <- inner_join(runs_long, runs_gur, by = "run_id")
+
+
+rl_filt <- runs_long %>% group_by(solver, target, blm) %>% 
+ summarise(time = mean(time, na.rm = T),
+           cost = mean(cost, na.rm = T),
+           time_gur = mean(time_gur, na.rm = T),
+           cost_gur = mean(cost_gur, na.rm = T))
+
+rl_filt <- rl_filt %>%
+ mutate(deltaC = (cost - cost_gur)/cost_gur * 100,
+        deltaT = cost - cost_gur,
+        deltaTM = (time - time_gur)/time_gur * 100,
+        deltaTT = time - time_gur
+ )
+
+
+(fig4 <- ggplot(data=rl_filt, aes(x = target, y = deltaC, color = solver, shape = as.factor(blm))) +
+   # ggtitle("Marxan - ILP: # features = 72; # pu's = 148510; # iterations = 1E+08 \n mean time + mean cost for Marxan") +
+   ylab("Delta cost [%] with optimal cost as baseline") +
+   geom_line(aes(color=solver))+
+   geom_point(aes(color=solver)) +
+   # geom_text(aes(label = ifelse(deltaT > 1000000,
+   #                              as.character(format(round(deltaT/1000000,0), big.mark=",")),
+   #                              ifelse(solver == "gurobi", format(round(cost/1000000,0), big.mark=","),""))), hjust = 0.5, vjust = -0.7) +
+   scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target) +
+   theme_bw() +
+   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+   theme(legend.position = c(0.1, 0.7)) +
+   theme(legend.background = element_rect(fill="white",
+                                          size=0.5, linetype="solid", 
+                                          colour ="black"))
+ 
+)
+
+
+(fig5 <- ggplot(data=rl_filt, aes(x = target, y = deltaTM, color = solver, shape = as.factor(blm))) +
+   # ggtitle("Marxan - ILP: # features = 72; # pu's = 148510; # iterations = 1E+08 \n mean time + mean cost for Marxan") +
+   #ylab("Mean processing time [sec]") +
+   geom_line(aes(color=solver))+
+   geom_point(aes(color=solver)) +
+   # geom_text(aes(label = ifelse(solver == "gurobi", "",as.character(paste0(round(deltaTM/100,0),""))), hjust = 0.5, vjust = -0.7)) +
+   
+   scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target) +
+   scale_y_continuous("Differnce to fastest solver [multiplier of best time]", labels = as.character(c(0, 50, 100, 150, 200)), breaks = c(0, 5000, 10000, 15000, 20000)) +
+   theme_bw()+
+   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+   theme(legend.position = c(0.1, 0.8)) +
+   theme(legend.background = element_rect(fill="white",
+                                          size=0.5, linetype="solid", 
+                                          colour ="black"))
+ 
+)
+
+
+ggsave(here("figures","Figure 4.png"), fig4)
+ggsave(here("figures","Figure 5.png"), fig5)
+
