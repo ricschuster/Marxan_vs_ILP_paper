@@ -270,13 +270,13 @@ runs_gur <- runs_long %>% filter(solver == 'gurobi') %>% mutate(cost_gur = cost,
 runs_long <- inner_join(runs_long, runs_gur, by = "run_id")
 
 
-rl_filt <- runs_long %>% group_by(solver, target, blm) %>% 
- summarise(time = mean(time, na.rm = T),
-           cost = mean(cost, na.rm = T),
-           time_gur = mean(time_gur, na.rm = T),
-           cost_gur = mean(cost_gur, na.rm = T))
+# rl_filt <- runs_long %>% group_by(solver, target, blm) %>% 
+#  summarise(time = mean(time, na.rm = T),
+#            cost = mean(cost, na.rm = T),
+#            time_gur = mean(time_gur, na.rm = T),
+#            cost_gur = mean(cost_gur, na.rm = T))
 
-rl_filt <- rl_filt %>%
+rl_filt <- runs_long %>%
  mutate(deltaC = (cost - cost_gur)/cost_gur * 100,
         deltaT = cost - cost_gur,
         deltaTM = (time - time_gur)/time_gur * 100,
