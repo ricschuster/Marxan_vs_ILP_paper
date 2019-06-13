@@ -71,7 +71,8 @@ rl_filt <- rl_filt %>%
     theme(legend.position = c(0.1, 0.85)) +
     theme(legend.background = element_rect(fill="white",
                                            size=0.5, linetype="solid", 
-                                           colour ="black"))
+                                           colour ="black")) +
+    geom_text(x=0.9, y=12, label="a)", size = 6)
   
 )
 
@@ -87,17 +88,20 @@ rl_filt <- rl_filt %>%
     scale_y_continuous("Differnce to fastest solver [multiplier of best time]", labels = as.character(c(0, 200, 400, 600)), breaks = c(0, 20000, 40000, 60000)) +
     theme_bw()+
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
-    theme(legend.position = c(0.1, 0.85)) +
-    theme(legend.background = element_rect(fill="white",
-                                           size=0.5, linetype="solid", 
-                                           colour ="black"))
+    theme(legend.position = 'none') + #c(0.1, 0.85)) +
+    # theme(legend.background = element_rect(fill="white",
+    #                                        size=0.5, linetype="solid", 
+    #                                        colour ="black")) +
+    geom_text(x=0.9, y=40000, label="b)", size = 6)
   
 )
 
+ff <-grid.arrange(fig1, fig2, nrow = 2)
 
 ggsave(here("figures","Figure 1.png"), fig1)
 ggsave(here("figures","Figure 2.png"), fig2)
 
+ggsave(here("figures","Figure 1c.png"), ff)
 
 # Range of savings and time
 runs_red <- runs_long %>% filter(run_id <200)
@@ -190,16 +194,18 @@ rl_filt <- runs_long %>%
    ylab("Deviation from lowest objective function [%]") +
    geom_line(aes(color=solver))+
    geom_point(aes(color=solver)) +
+   scale_shape_discrete(name  ="BLM") + 
    # geom_text(aes(label = ifelse(deltaT > 1000000,
    #                              as.character(format(round(deltaT/1000000,0), big.mark=",")),
    #                              ifelse(solver == "gurobi", format(round(cost/1000000,0), big.mark=","),""))), hjust = 0.5, vjust = -0.7) +
    scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target) +
    theme_bw() +
    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
-   theme(legend.position = c(0.1, 0.7)) +
+   theme(legend.position = c(0.1, 0.6)) +
    theme(legend.background = element_rect(fill="white",
                                           size=0.5, linetype="solid", 
-                                          colour ="black"))
+                                          colour ="black")) +
+    geom_text(x=0.9, y=80, label="a)", size = 6, color = "black")
  
 )
 
@@ -215,17 +221,19 @@ rl_filt <- runs_long %>%
    scale_y_continuous("Differnce to fastest solver [multiplier of best time]", labels = as.character(c(0, 50, 100, 150, 200)), breaks = c(0, 5000, 10000, 15000, 20000)) +
    theme_bw()+
    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
-   theme(legend.position = c(0.1, 0.8)) +
-   theme(legend.background = element_rect(fill="white",
-                                          size=0.5, linetype="solid", 
-                                          colour ="black"))
- 
+   theme(legend.position = "none") + #c(0.1, 0.8)) +
+   # theme(legend.background = element_rect(fill="white",
+   #                                        size=0.5, linetype="solid", 
+   #                                        colour ="black"))
+   geom_text(x=0.9, y=12000, label="b)", size = 6, color = "black")
 )
 
+ff2 <-grid.arrange(fig3, fig4, nrow = 2)
 
 ggsave(here("figures","Figure 3.png"), fig3)
 ggsave(here("figures","Figure 4.png"), fig4)
 
+ggsave(here("figures","Figure 2c.png"), ff2)
 
 
 # natural earth political boundaries
