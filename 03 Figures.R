@@ -261,7 +261,7 @@ mybb <- cbind(x=c(560000, 560000 + 22500, 560000 + 22500, 560000),
 mybb <- SpatialPolygons(list(Polygons(list(Polygon(mybb)),"1")), proj4string=CRS(proj4string(gr_rast)))
 
 # BLM comparison figure
-here("Figures", paste0("Figure 5", ".png")) %>%
+here("Figures", paste0("Figure S10", ".png")) %>%
   png(width = 2000, height = 3000, res = 300)
 
 ll <- list()

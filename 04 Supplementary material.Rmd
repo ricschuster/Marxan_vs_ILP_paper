@@ -177,7 +177,7 @@ pp(rr_marxan_compl %>% filter(solver == "marxan") %>% group_by(target, n_feature
 ## Figure S10
 
 ```{r FigS10, echo = FALSE}
-knitr::include_graphics("Figure 5.png")
+knitr::include_graphics("Figure S10.png")
 ```
 
 **Figure S10**: Compactness of solutions. Shown are the solutions for a 10% target. The numbers represent BLM values.
