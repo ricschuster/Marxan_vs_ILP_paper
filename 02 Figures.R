@@ -286,7 +286,7 @@ rl_filt <- runs_long %>%
 
 (fig4 <- ggplot(data=rl_filt, aes(x = target, y = deltaC, color = solver, shape = as.factor(blm))) +
    # ggtitle("Marxan - ILP: # features = 72; # pu's = 148510; # iterations = 1E+08 \n mean time + mean cost for Marxan") +
-   ylab("Delta cost [%] with optimal cost as baseline") +
+   ylab("Deviation from lowest objective function [%]") +
    geom_line(aes(color=solver))+
    geom_point(aes(color=solver)) +
    # geom_text(aes(label = ifelse(deltaT > 1000000,

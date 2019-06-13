@@ -215,3 +215,20 @@ out_tb <- tibble(species = tot_amount$species, tot_amount = tot_amount$tot_amoun
                  g1 = amount_g1$g1_amount, g2 = amount_g2$g2_amount) %>%
                   mutate(g1_perc = g1/tot_amount*100, g2_perc = g2/tot_amount*100, incr = g2_perc - g1_perc)
   
+
+
+#####
+## BLM cost
+
+
+tt <- here("data", "nplcc_planning-units.tif") %>% 
+  raster()
+
+tt[] <- 1:ncell(tt)
+
+e <- extent(560000, 560000 + 22500, 5300000 - 22500, 5300000)
+tmp.r <- crop(tt, e)
+
+cost_ss <- cost[cost$id %in% tmp.r[], ] %>% 
+  arrange(id)
+
