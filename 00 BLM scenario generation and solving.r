@@ -289,27 +289,3 @@ stopCluster(cl)
 
 
 
-## Objective value extraction from Marxan results
-setwd(here("output_blm/marxan"))
-
-fls <- list.files(pattern = "*.csv")
-
-
-
-
-out <- tibble(target = substr(gsub("marxan_target-","",fls), 1,3),
-              blm = sapply(strsplit(sapply(strsplit(fls, "blm-"), "[", 2), "_spf"), "[", 1),
-              score = NA)
-
-for(ii in 1:length(fls)){
-  tmp <- read_csv(fls[ii])
-  best <- tmp %>% filter(Shortfall == 0) %>%
-    arrange(Score) %>%
-    slice(1)
-  out[ii,]$score <- best$Score
-  
-  
-}
-
-write_csv(out, here("output_blm/ilp-comparison-runs_marxan_scores.csv"))
-
