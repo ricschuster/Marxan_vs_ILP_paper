@@ -35,7 +35,7 @@ rl_filt <- rl_filt %>%
          deltaT = cost - cost_gur,
          deltaTM = (time - time_gur)/time_gur * 100,
          deltaTT = time - time_gur
-)
+  )
 
 
 
@@ -146,9 +146,9 @@ features <- inner_join(features, targets, by = "id")
 
 # ilp 
 p1 <- problem(cost_ss, 
-             features = features %>% select(id, name), 
-             rij = rij, 
-             cost_column = "cost") %>% 
+              features = features %>% select(id, name), 
+              rij = rij, 
+              cost_column = "cost") %>% 
   add_min_set_objective() %>%
   add_relative_targets(0.3) %>%
   add_binary_decisions()
@@ -213,8 +213,8 @@ amount_g2 <- rij_j %>% filter(g2 == 1) %>% group_by(species) %>%
 
 out_tb <- tibble(species = tot_amount$species, tot_amount = tot_amount$tot_amount, 
                  g1 = amount_g1$g1_amount, g2 = amount_g2$g2_amount) %>%
-                  mutate(g1_perc = g1/tot_amount*100, g2_perc = g2/tot_amount*100, incr = g2_perc - g1_perc)
-  
+  mutate(g1_perc = g1/tot_amount*100, g2_perc = g2/tot_amount*100, incr = g2_perc - g1_perc)
+
 
 
 #####
@@ -264,7 +264,40 @@ cost_df <- comb_df[,2:(ncol(comb_df)-1)] * comb_df$cost
 
 cost_sums <- colSums(cost_df, na.rm = TRUE)
 
-out <- tibble(solver = sapply(strsplit(names(cost_sums), "_target"), "[", 1),
-              target = substr(sapply(strsplit(names(cost_sums), "target."), "[", 2), 1, 3),
+out <- tibble(id = rep(1:45,3),
+              solver = sapply(strsplit(names(cost_sums), "_target"), "[", 1),
+              target = as.numeric(substr(sapply(strsplit(names(cost_sums), "target."), "[", 2), 1, 3)),
               blm = sapply(strsplit(sapply(strsplit(names(cost_sums), "blm."), "[", 2), "_spf"), "[", 1),
               cost = as.numeric(cost_sums))
+
+
+out_gur <- out %>% filter(solver == 'gurobi') %>% mutate(cost_gur = cost) %>% select(id, cost_gur)
+
+out <- inner_join(out, out_gur, by = "id")
+
+
+rl_filt <- out %>%
+  mutate(deltaC = (cost - cost_gur)/cost_gur * 100,
+         deltaT = cost - cost_gur
+  )
+
+
+(fig6 <- ggplot(data=rl_filt, aes(x = target, y = deltaC, color = solver, shape = as.factor(blm))) +
+    # ggtitle("Marxan - ILP: # features = 72; # pu's = 148510; # iterations = 1E+08 \n mean time + mean cost for Marxan") +
+    ylab("Delta cost [%] with optimal cost as baseline") +
+    geom_line(aes(color=solver))+
+    geom_point(aes(color=solver)) +
+    # geom_text(aes(label = ifelse(deltaT > 1000000,
+    #                              as.character(format(round(deltaT/1000000,0), big.mark=",")),
+    #                              ifelse(solver == "gurobi", format(round(cost/1000000,0), big.mark=","),""))), hjust = 0.5, vjust = -0.7) +
+    scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target) +
+    theme_bw() +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+    theme(legend.position = c(0.1, 0.7)) +
+    theme(legend.background = element_rect(fill="white",
+                                           size=0.5, linetype="solid", 
+                                           colour ="black"))
+  
+)
+
+ggsave(here("figures","Figure 6.png"), fig6)
