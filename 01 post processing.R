@@ -245,9 +245,6 @@ tt <- here("data", "nplcc_planning-units.tif") %>%
 tt[] <- 1:ncell(tt)
 
 lala <- stack(tt,gr_rast, sy_rast, ma_rast)
-out <- tibble(solver = sapply(strsplit(names(lala), "_target"), "[", 1),
-              target = substr(sapply(strsplit(names(lala), "target."), "[", 2), 1, 3),
-              blm = sapply(strsplit(sapply(strsplit(names(lala), "blm."), "[", 2), "_spf"), "[", 1))
 
 
 
@@ -259,4 +256,15 @@ cost_ss <- cost[cost$id %in% comb[[1]][], ] %>%
 
 
 comb_df <- as.data.frame(comb)
+names(comb_df)[1] <- "id"
 
+comb_df <- inner_join(comb_df, cost_ss, by = "id")
+
+cost_df <- comb_df[,2:(ncol(comb_df)-1)] * comb_df$cost
+
+cost_sums <- colSums(cost_df, na.rm = TRUE)
+
+out <- tibble(solver = sapply(strsplit(names(cost_sums), "_target"), "[", 1),
+              target = substr(sapply(strsplit(names(cost_sums), "target."), "[", 2), 1, 3),
+              blm = sapply(strsplit(sapply(strsplit(names(cost_sums), "blm."), "[", 2), "_spf"), "[", 1),
+              cost = as.numeric(cost_sums))
