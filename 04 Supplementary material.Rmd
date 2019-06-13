@@ -1,0 +1,170 @@
+---
+output:
+  pdf_document:
+    fig_caption: yes
+  html_document:
+    df_print: paged
+header-includes: \usepackage{caption}
+---
+
+\captionsetup[table]{labelformat=empty}
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(raster)
+library(foreach)
+library(doParallel)
+library(uuid)
+library(here)
+library(tidyverse)
+library(prioritizr)
+pkg_list <- c("raster", "prioritizr", "marxan", "uuid",  "here", "tidyverse")
+select <- dplyr::select
+walk(list.files("R", full.names = TRUE), source)
+prioritizr_timed <- add_timer(prioritizr::solve)
+
+
+spp <- read_csv(here("data", "nplcc_species.csv"))
+names(spp)[-1] <- c("Species Code", "Common Name", "Scientific Name")
+# Post-processing
+runs_long <- read_csv(here("output", "ilp-comparison-runs.csv"))
+runs_long <- runs_long %>% mutate(solv_it = ifelse(!is.na(marxan_iterations), paste(solver, marxan_iterations, sep="_"), solver)) %>%
+  filter(run_id < 200)
+
+runs_gur <- runs_long %>% filter(solver == 'gurobi') %>% mutate(cost_gur = cost, time_gur = time) %>% select(run_id, cost_gur, time_gur)
+
+runs_long <- inner_join(runs_long, runs_gur, by = "run_id")
+
+
+rl_filt <- runs_long %>% filter(n_features == 72 & n_pu == 148510 & 
+                                  (solver != 'marxan' | (marxan_iterations > 1E+07 & spf > 1))
+) %>% group_by(solver, target) %>% 
+  summarise(time = mean(time, na.rm = T),
+            cost = mean(cost, na.rm = T),
+            time_gur = mean(time_gur, na.rm = T),
+            cost_gur = mean(cost_gur, na.rm = T))
+
+rl_filt <- rl_filt %>%
+  mutate(deltaC = (cost - cost_gur)/cost_gur * 100,
+         deltaT = cost - cost_gur,
+         deltaTM = (time - time_gur)/time_gur * 100,
+         deltaTT = time - time_gur
+  )
+
+
+pp <- function(x, title = "", y.var, xlab = "", ylab = "") {
+  #x.var <- enquo(x.var)
+  y.var <- enquo(y.var)
+  ggplot(x, 
+         aes(x = target * 100, y = !! y.var, colour = as.factor(n_pu) , shape = as.factor(n_features), 
+             group = interaction(n_features, n_pu))) +
+    scale_colour_discrete(name  ="Planning units") +
+    scale_shape_discrete(name  ="Features") + 
+    xlab(xlab) + 
+    ylab(ylab) + 
+    geom_line() +
+    geom_point() + 
+    ggtitle(title) +
+    theme_bw()
+}
+
+runs_red <- runs_long %>% filter(run_id <200)
+
+rr_marxan_compl <- runs_red %>% filter(solver == "gurobi" | solver == "rsymphony" | (solver == "marxan" & n_solutions == 10))
+rr_marxan_compl <- rr_marxan_compl %>% group_by(solver)
+
+rr_marxan_compl <- rr_marxan_compl %>% mutate(time_perc = (time - time_gur)/time_gur * 100,
+                    cost_perc = (cost - cost_gur)/cost_gur *100)
+
+```
+
+
+Supporting Information for 
+
+#### Integer Linear programming outperforms simulated annealing for solving conservation planning problems 
+
+Richard Schuster, Jeffrey O. Hanson, Matt Strimas-Mackey, Joseph R. Bennett 
+
+
+\newpage
+## Table S1
+```{r TableS1, echo = FALSE, message = FALSE, results = "asis"}
+knitr::kable(spp[,-1], caption = "**Table S1**: List of species that were used as features in our analysis.")
+```
+
+\newpage
+## Figure S1
+```{r FigS1, echo = FALSE}
+pp(rr_marxan_compl %>% filter(solver == "marxan" & marxan_iterations > 1E+07 & spf > 1 & spf < 125), "", cost_perc,
+   xlab = "Target [%]", ylab = "Cost increase using SA compared to ILP [%]")
+```
+**Figure S1**: Percent cost increase of SA solutions compared to ILP solutions, across targets, number of features and number of planning units. Simulated annealing (i.e. Marxan) parameters used are: number of iterations > 100,000; species penalty factor 5 or 25. 
+
+\newpage
+## Figure S2
+```{r FigS2, echo = FALSE}
+pp(rr_marxan_compl %>% filter(solver == "gurobi"), "", cost,
+   xlab = "Target [%]", ylab = "Solution cost [$]")
+```
+**Figure S2**: Cost profile for Gurobi solver across targets, number of features and number of planning units.
+
+\newpage
+## Figure S3
+```{r FigS3, echo = FALSE}
+pp(rr_marxan_compl %>% filter(solver == "rsymphony"), "", cost,
+   xlab = "Target [%]", ylab = "Solution cost [$]")
+```
+**Figure S3**: Cost profile for SYMPHONY solver across targets, number of features and number of planning units.
+
+\newpage
+## Figure S4
+```{r FigS4, echo = FALSE}
+pp(rr_marxan_compl %>% filter(solver == "marxan") %>% group_by(target, n_features, n_pu) %>% 
+     summarise(cost = mean(cost)), "", cost,
+   xlab = "Target [%]", ylab = "Solution cost [$]")
+```
+**Figure S4**: Cost profile for Marxan using Simulated Annealing across targets, number of features and number of planning units.
+
+\newpage
+## Figure S5
+```{r FigS5, echo = FALSE}
+pp(rr_marxan_compl %>% filter(solver == "rsymphony"), "", time_perc / 100,
+   xlab = "Target [%]", ylab = "Multiplier for SYMPHONY to baseline time of Gurobi")
+```
+**Figure S5**: Time to solution comparisons between SYMPHONY and Gurobi across targets, number of features and number of planning units.
+
+\newpage
+## Figure S6
+```{r FigS6, echo = FALSE}
+pp(rr_marxan_compl %>% filter(solver == "marxan") %>% group_by(target, n_features, n_pu) %>% 
+     summarise(time_perc = mean(time_perc)), "", time_perc / 100,
+   xlab = "Target [%]", ylab = "Multiplier for Marxan to baseline time of Gurobi")
+```
+**Figure S6**: Time to solution comparisons between Marxan using Simulated Annealing and Gurobi across targets, number of features and number of planning units.
+
+\newpage
+## Figure S7
+```{r FigS7, echo = FALSE}
+pp(rr_marxan_compl %>% filter(solver == "gurobi"), "", time,
+   xlab = "Target [%]", ylab = "Time to solution [seconds]")
+```
+**Figure S7**: Time to solution profile for Gurobi solver across targets, number of features and number of planning units.
+
+\newpage
+## Figure S8
+```{r FigS8, echo = FALSE}
+pp(rr_marxan_compl %>% filter(solver == "rsymphony"), "", time,
+   xlab = "Target [%]", ylab = "Time to solution [seconds]")
+```
+**Figure S8**: Time to solution profile for SYMPHONY solver across targets, number of features and number of planning units.
+
+\newpage
+## Figure S9
+```{r FigS9, echo = FALSE}
+pp(rr_marxan_compl %>% filter(solver == "marxan") %>% group_by(target, n_features, n_pu) %>% 
+     summarise(time = mean(time)), "", time,
+   xlab = "Target [%]", ylab = "Time to solution [seconds]")
+```
+**Figure S9**: Time to solution profile for Marxan using Simulated Annealing across targets, number of features and number of planning units.
