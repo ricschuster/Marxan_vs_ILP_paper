@@ -333,8 +333,6 @@ mtext("1,000", side=2, at = 0.1, cex=1, col="black", outer=TRUE, las = 1)
 
 dev.off()
 # 
-
-
 # ##### 
 # ## BLM cost (not used)
 # 

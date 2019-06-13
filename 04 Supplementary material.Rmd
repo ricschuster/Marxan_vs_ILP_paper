@@ -1,10 +1,11 @@
 ---
+header-includes: \usepackage{caption}
 output:
   pdf_document:
     fig_caption: yes
+  word_document: default
   html_document:
     df_print: paged
-header-includes: \usepackage{caption}
 ---
 
 \captionsetup[table]{labelformat=empty}
@@ -20,6 +21,9 @@ library(uuid)
 library(here)
 library(tidyverse)
 library(prioritizr)
+library(sf)
+library(RColorBrewer)
+
 pkg_list <- c("raster", "prioritizr", "marxan", "uuid",  "here", "tidyverse")
 select <- dplyr::select
 walk(list.files("R", full.names = TRUE), source)
@@ -168,3 +172,14 @@ pp(rr_marxan_compl %>% filter(solver == "marxan") %>% group_by(target, n_feature
    xlab = "Target [%]", ylab = "Time to solution [seconds]")
 ```
 **Figure S9**: Time to solution profile for Marxan using Simulated Annealing across targets, number of features and number of planning units.
+
+
+## Figure S10
+
+```{r FigS10, echo = FALSE}
+knitr::include_graphics("Figure 5.png")
+```
+
+**Figure S10**: Compactness of solutions. Shown are the solutions for a 10% target. The numbers represent BLM values.
+
+
