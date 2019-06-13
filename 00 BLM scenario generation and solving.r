@@ -231,9 +231,9 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
                           r_marxan$n_solutions <- sum(m_results@summary$Shortfall == 0)
                           if (r_marxan$n_solutions > 0) {
                             best <- filter(m_results@summary, Shortfall == 0) %>%
-                              arrange(Cost) %>%
+                              arrange(Score) %>%
                               slice(1)
-                            r_marxan$cost <- best$Cost
+                            r_marxan$cost <- best$Score
                             # raster solution
                             s_mar <- m_results@selections[best$Run_Number,] %>%
                               as.data.frame() %>%
@@ -259,7 +259,7 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
                         select(r_marxan, marxan_iterations, spf, n_solutions, cost, time)
                       }
   r$marxan <- list(r_marxan)
-  save this iteration in case of crashing
+  # save this iteration in case of crashing
   str_glue_data(r, "run-", run,
                 "_target-{target}_features-{n_features}_pu-{n_pu}_blm-{blm}.rds") %>%
     file.path(runs_dir, .) %>%
@@ -287,4 +287,29 @@ write_csv(runs_long, here("output_blm", "ilp-comparison-runs_no_marx.csv"))
 # clean up
 stopCluster(cl)
 
+
+
+## Objective value extraction from Marxan results
+setwd(here("output_blm/marxan"))
+
+fls <- list.files(pattern = "*.csv")
+
+
+
+
+out <- tibble(target = substr(gsub("marxan_target-","",fls), 1,3),
+              blm = sapply(strsplit(sapply(strsplit(fls, "blm-"), "[", 2), "_spf"), "[", 1),
+              score = NA)
+
+for(ii in 1:length(fls)){
+  tmp <- read_csv(fls[ii])
+  best <- tmp %>% filter(Shortfall == 0) %>%
+    arrange(Score) %>%
+    slice(1)
+  out[ii,]$score <- best$Score
+  
+  
+}
+
+write_csv(out, here("output_blm/ilp-comparison-runs_marxan_scores.csv"))
 
