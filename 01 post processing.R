@@ -220,15 +220,43 @@ out_tb <- tibble(species = tot_amount$species, tot_amount = tot_amount$tot_amoun
 #####
 ## BLM cost
 
+# cost and occupancy
+nplcc_file <- here("data", "nplcc_cost_occupancy.zip")
+if (!file.exists(nplcc_file)) {
+  "https://s3.amazonaws.com/marxan-vs-ilp/nplcc_cost_occupancy.zip" %>% 
+    download.file(destfile = nplcc_file)
+}
+cost_occ <- read_csv(nplcc_file, 
+                     col_types = cols(.default = col_double(),
+                                      pu = col_integer()))
+
+# split out cost and occupancy
+cost <- select(cost_occ, id = pu, cost) %>% 
+  arrange(id)
+
+gr_rast <- stack(list.files(here("output_blm/gurobi/"), full.names = TRUE))
+sy_rast <- stack(list.files(here("output_blm/rsymphony/"), full.names = TRUE))
+ma_rast <- stack(list.files(here("output_blm/marxan//"), pattern = "*.tif", full.names = TRUE))
+
 
 tt <- here("data", "nplcc_planning-units.tif") %>% 
   raster()
 
 tt[] <- 1:ncell(tt)
 
-e <- extent(560000, 560000 + 22500, 5300000 - 22500, 5300000)
-tmp.r <- crop(tt, e)
+lala <- stack(tt,gr_rast, sy_rast, ma_rast)
+out <- tibble(solver = sapply(strsplit(names(lala), "_target"), "[", 1),
+              target = substr(sapply(strsplit(names(lala), "target."), "[", 2), 1, 3),
+              blm = sapply(strsplit(sapply(strsplit(names(lala), "blm."), "[", 2), "_spf"), "[", 1))
 
-cost_ss <- cost[cost$id %in% tmp.r[], ] %>% 
+
+
+e <- extent(560000, 560000 + 22500, 5300000 - 22500, 5300000)
+comb <- crop(lala, e)
+
+cost_ss <- cost[cost$id %in% comb[[1]][], ] %>% 
   arrange(id)
+
+
+comb_df <- as.data.frame(comb)
 
