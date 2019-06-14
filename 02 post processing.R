@@ -51,6 +51,40 @@ rl_filt <- rl_filt %>%
 ) 
 
 
+# Post-processing BLM
+runs_long <- read_csv(here("output_blm/", "ilp-comparison-runs.csv"))
+runs_long <- runs_long %>% mutate(solv_it = ifelse(!is.na(marxan_iterations), paste(solver, marxan_iterations, sep="_"), solver)) 
+
+runs_gur <- runs_long %>% filter(solver == 'gurobi') %>% mutate(cost_gur = cost, time_gur = time) %>% select(run_id, cost_gur, time_gur)
+
+runs_long <- inner_join(runs_long, runs_gur, by = "run_id")
+
+
+# rl_filt <- runs_long %>% group_by(solver, target, blm) %>% 
+#  summarise(time = mean(time, na.rm = T),
+#            cost = mean(cost, na.rm = T),
+#            time_gur = mean(time_gur, na.rm = T),
+#            cost_gur = mean(cost_gur, na.rm = T))
+
+rl_filt <- runs_long %>%
+ mutate(deltaC = (cost - cost_gur)/cost_gur * 100,
+        deltaT = cost - cost_gur,
+        deltaTM = (time - time_gur)/time_gur * 100,
+        deltaTT = time - time_gur
+ )
+
+
+(deltas <- runs_long %>% mutate(deltaTM = (time - time_gur)/time_gur * 100,
+                                deltaTT = time - time_gur,
+                                deltaC = (cost - cost_gur)/cost_gur * 100
+) %>% group_by(solver) %>% summarise(avg_time = mean(deltaTM)/100,
+                                     max_time = max(deltaTM)/100,
+                                     min_time = min(deltaTM)/100,
+                                     avg_cost = mean(deltaC, na.rm = T),
+                                     max_cost = max(deltaC, na.rm = T),
+                                     min_cost = min(deltaC, na.rm = T))
+) 
+
 
 # Explore budget
 g1 <- raster(here("output/gurobi/", "gurobi_target-0.3_features-72_pu-148510.tif"))
