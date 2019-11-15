@@ -337,49 +337,80 @@ dev.off()
 # ##### 
 # Study area
 # ##### 
-stem_crop <- function(x) {
-  stopifnot(inherits(x, "Raster"))
-  
-  # aggregate for faster processing
-  x_agg <- raster::aggregate(x, fact = 3)
-  
-  # extent of non-NA
-  x_agg <- stem_to_na(x_agg)
-  #x_agg <- raster::trim(x_agg, values = NA)
-  #x_ext <- raster::extent(x_agg)
-  x_ext <- extent_na(x_agg)
-  raster::crop(x, x_ext)
-}
-
-extent_na <- function(x) {
-  pts <- raster::rasterToPoints(x)
-  x_rng <- range(pts[, "x"])
-  y_rng <- range(pts[, "y"])
-  raster::extent(x_rng[1] - res(x)[1] / 2, x_rng[2] + res(x)[1] / 2,
-                 y_rng[1] - res(x)[2] / 2, y_rng[2] + res(x)[2] / 2)
-}
-
-stem_to_na <- function(x, value = 0) {
-  stopifnot(inherits(x, "Raster"))
-  stopifnot(is.numeric(value), length(value) == 1)
-  
-  if (inherits(x, "RasterLayer")) {
-    x[x[] == value] <- NA_real_
-  } else {
-    for (i in seq.int(raster::nlayers(x))) {
-      x[[i]][x[[i]][] == value] <- NA_real_
-    }
-  }
-  return(x)
-}
-
-
 ne_land <- read_sf("data/ne-land.gpkg") %>% st_geometry()
 ne_country_lines <- read_sf("data/ne-country-lines.gpkg") %>% st_geometry()
 ne_state_lines <- read_sf("data/ne-state-lines.gpkg") %>% st_geometry()
 
 study_area <- raster("data/study_area.tif")
+ 
+crs <- crs(study_area)
 
+e <- extent(study_area)
+#e <- extent(abd_plot)
+text_col <- "black"
+
+# prepare vector layers
+land <- st_transform(ne_land, crs = crs)
+country <- st_transform(ne_country_lines, crs = crs)
+state <- st_transform(ne_state_lines, crs = crs)
+
+palette <- c("Greens", "Blues", "YlOrRd", "Reds")
+
+add_legend <- function(title, palette, bump = 0, low_high = FALSE, 
+                       text_col = "black") {
+  if (low_high) {
+    labs <- list(at = c(0, 1), labels = c("1", "52"), line = -1,
+                 cex.axis = 1 * scl, fg = NA, col.axis = text_col)
+    
+  } else {
+    labs <- list(at = c(0, 1), labels = NA, line = 0, fg = NA)
+  }
+  fields::image.plot(zlim = c(0, 1), legend.only = TRUE, col = palette(256),
+                     legend.width = 1, horizontal = TRUE,
+                     smallplot = c(0.12, 0.28, 0.05 + bump, 0.075 + bump),
+                     axis.args = labs,
+                     legend.args = list(text = proper(title), side = 1,
+                                        col = text_col))
+}
+
+
+##Plotting
+here("figures/", paste0("Figure 0", ".png")) %>% 
+  png(width = 3000, height = 3000, res = 300)
+
+
+pal <- brewer.pal(5, "Set2")[1:5]
+pal <- colorRampPalette(pal)
+par(mar = c(0.1, 0.1, 0.1, 0.1), oma = c(0,0,0,0), bg = "white")
+plot(land, col = "grey85", border = NA, xlim = e[1:2], ylim = e[3:4])
+
+plot(study_area, add = TRUE, col = pal(256), legend = FALSE, 
+     maxpixels = ncell(study_area))
+add_legend("", pal, legend_offsets[3], low_high = lh[ii],
+           text_col = text_col)
+
+# boundaries
+plot(state, col = "black", lwd = 0.5, lty = 1, add = TRUE)
+plot(country, col = "black", lwd = 1, add = TRUE)
+
+# title
+# plot bounds
+usr <- par("usr")
+xwidth <- usr[2] - usr[1]
+yheight <- usr[4] - usr[3]
+# labels
+
+text(x = usr[1] + 0.6 * xwidth, y = usr[3] + 0.2 * yheight,
+     labels = "Study area", pos = 4, font = 1, cex = 1.2, col = text_col)
+
+text(x = usr[1] + 0.65 * xwidth, y = usr[3] + 0.9 * yheight,
+     labels = "British Columbia", pos = 4, font = 1, cex = 1.2, col = text_col)
+
+text(x = usr[1] + 0.65 * xwidth, y = usr[3] + 0.4 * yheight,
+     labels = "Washington", pos = 4, font = 1, cex = 1.2, col = text_col)
+
+text(x = usr[1] + 0.65 * xwidth, y = usr[3] + 0.08 * yheight,
+     labels = "Oregon", pos = 4, font = 1, cex = 1.2, col = text_col)
 
 
 # ##### 
