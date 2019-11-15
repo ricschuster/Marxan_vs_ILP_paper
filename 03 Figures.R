@@ -333,6 +333,55 @@ mtext("1,000", side=2, at = 0.1, cex=1, col="black", outer=TRUE, las = 1)
 
 dev.off()
 # 
+
+# ##### 
+# Study area
+# ##### 
+stem_crop <- function(x) {
+  stopifnot(inherits(x, "Raster"))
+  
+  # aggregate for faster processing
+  x_agg <- raster::aggregate(x, fact = 3)
+  
+  # extent of non-NA
+  x_agg <- stem_to_na(x_agg)
+  #x_agg <- raster::trim(x_agg, values = NA)
+  #x_ext <- raster::extent(x_agg)
+  x_ext <- extent_na(x_agg)
+  raster::crop(x, x_ext)
+}
+
+extent_na <- function(x) {
+  pts <- raster::rasterToPoints(x)
+  x_rng <- range(pts[, "x"])
+  y_rng <- range(pts[, "y"])
+  raster::extent(x_rng[1] - res(x)[1] / 2, x_rng[2] + res(x)[1] / 2,
+                 y_rng[1] - res(x)[2] / 2, y_rng[2] + res(x)[2] / 2)
+}
+
+stem_to_na <- function(x, value = 0) {
+  stopifnot(inherits(x, "Raster"))
+  stopifnot(is.numeric(value), length(value) == 1)
+  
+  if (inherits(x, "RasterLayer")) {
+    x[x[] == value] <- NA_real_
+  } else {
+    for (i in seq.int(raster::nlayers(x))) {
+      x[[i]][x[[i]][] == value] <- NA_real_
+    }
+  }
+  return(x)
+}
+
+
+ne_land <- read_sf("data/ne-land.gpkg") %>% st_geometry()
+ne_country_lines <- read_sf("data/ne-country-lines.gpkg") %>% st_geometry()
+ne_state_lines <- read_sf("data/ne-state-lines.gpkg") %>% st_geometry()
+
+study_area <- raster("data/study_area.tif")
+
+
+
 # ##### 
 # ## BLM cost (not used)
 # 
