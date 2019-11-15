@@ -82,6 +82,28 @@ rr_marxan_compl <- rr_marxan_compl %>% group_by(solver)
 rr_marxan_compl <- rr_marxan_compl %>% mutate(time_perc = (time - time_gur)/time_gur * 100,
                     cost_perc = (cost - cost_gur)/cost_gur *100)
 
+
+CA_land <- readRDS("data/gadm36_CAN_1_sf.rds")
+CA_land_red <- CA_land %>% filter(NAME_1 == "British Columbia")
+
+US_land <- readRDS("data/gadm36_USA_1_sf.rds")
+US_land_red <- US_land %>% filter(NAME_1 == "Washington" | NAME_1 == "Oregon")
+
+ne_land <- rbind(CA_land_red, US_land_red) %>% st_geometry()
+ne_lines <- st_cast(ne_land, "MULTILINESTRING")
+
+study_area <- raster("data/study_area.tif")
+ 
+crs <- crs(study_area)
+
+e <- extent(study_area)
+text_col <- "black"
+
+# prepare vector layers
+land <- st_transform(ne_land, crs = crs)
+plot_line <- st_transform(ne_lines, crs = crs)
+
+
 ```
 
 
@@ -99,87 +121,122 @@ knitr::kable(spp[,-1], caption = "**Table S1**: List of species that were used a
 ```
 
 \newpage
+
 ## Figure S1
 ```{r FigS1, echo = FALSE}
-pp(rr_marxan_compl %>% filter(solver == "marxan" & marxan_iterations > 1E+07 & spf > 1 & spf < 125), "", cost_perc,
-   xlab = "Target [%]", ylab = "Cost increase using SA compared to ILP [%]")
+par(mar = c(0.1, 0.1, 0.1, 0.1), oma = c(0,0,0,0), bg = "light blue")
+plot(land, col = "grey85", border = NA, xlim = e[1:2], ylim = e[3:4])
+
+plot(study_area, add = TRUE, col = "green4", legend = FALSE, 
+     maxpixels = ncell(study_area))
+
+# boundaries
+plot(plot_line, col = "black", lwd = 1, add = TRUE)
+# plot(state, col = "black", lwd = 0.5, lty = 1, add = TRUE)
+# plot(country, col = "black", lwd = 1, add = TRUE)
+
+# title
+# plot bounds
+usr <- par("usr")
+xwidth <- usr[2] - usr[1]
+yheight <- usr[4] - usr[3]
+# labels
+
+# text(x = usr[1] + 0.6 * xwidth, y = usr[3] + 0.2 * yheight,
+#      labels = "Study area", pos = 4, font = 1, cex = 1.2, col = text_col)
+
+text(x = usr[1] + 0.75 * xwidth, y = usr[3] + 0.9 * yheight,
+     labels = "British Columbia", pos = 4, font = 1, cex = 1.2, col = text_col)
+
+text(x = usr[1] + 0.75 * xwidth, y = usr[3] + 0.4 * yheight,
+     labels = "Washington", pos = 4, font = 1, cex = 1.2, col = text_col)
+
+text(x = usr[1] + 0.75 * xwidth, y = usr[3] + 0.08 * yheight,
+     labels = "Oregon", pos = 4, font = 1, cex = 1.2, col = text_col)
+
+
 ```
-**Figure S1**: Percent cost increase of SA solutions compared to ILP solutions, across targets, number of features and number of planning units. Simulated annealing (i.e. Marxan) parameters used are: number of iterations > 100,000; species penalty factor 5 or 25. 
+**Figure S1**: Study area. 
 
 \newpage
 ## Figure S2
 ```{r FigS2, echo = FALSE}
-pp(rr_marxan_compl %>% filter(solver == "gurobi"), "", cost,
-   xlab = "Target [%]", ylab = "Solution cost [$]")
+pp(rr_marxan_compl %>% filter(solver == "marxan" & marxan_iterations > 1E+07 & spf > 1 & spf < 125), "", cost_perc,
+   xlab = "Target [%]", ylab = "Cost increase using SA compared to ILP [%]")
 ```
-**Figure S2**: Cost profile for Gurobi solver across targets, number of features and number of planning units.
+**Figure S2**: Percent cost increase of SA solutions compared to ILP solutions, across targets, number of features and number of planning units. Simulated annealing (i.e. Marxan) parameters used are: number of iterations > 100,000; species penalty factor 5 or 25. 
 
 \newpage
 ## Figure S3
 ```{r FigS3, echo = FALSE}
-pp(rr_marxan_compl %>% filter(solver == "rsymphony"), "", cost,
+pp(rr_marxan_compl %>% filter(solver == "gurobi"), "", cost,
    xlab = "Target [%]", ylab = "Solution cost [$]")
 ```
-**Figure S3**: Cost profile for SYMPHONY solver across targets, number of features and number of planning units.
+**Figure S3**: Cost profile for Gurobi solver across targets, number of features and number of planning units.
 
 \newpage
 ## Figure S4
 ```{r FigS4, echo = FALSE}
-pp(rr_marxan_compl %>% filter(solver == "marxan") %>% group_by(target, n_features, n_pu) %>% 
-     summarise(cost = mean(cost)), "", cost,
+pp(rr_marxan_compl %>% filter(solver == "rsymphony"), "", cost,
    xlab = "Target [%]", ylab = "Solution cost [$]")
 ```
-**Figure S4**: Cost profile for Marxan using Simulated Annealing across targets, number of features and number of planning units.
+**Figure S4**: Cost profile for SYMPHONY solver across targets, number of features and number of planning units.
 
 \newpage
 ## Figure S5
 ```{r FigS5, echo = FALSE}
-pp(rr_marxan_compl %>% filter(solver == "rsymphony"), "", time_perc / 100,
-   xlab = "Target [%]", ylab = "Multiplier for SYMPHONY to baseline time of Gurobi")
+pp(rr_marxan_compl %>% filter(solver == "marxan") %>% group_by(target, n_features, n_pu) %>% 
+     summarise(cost = mean(cost)), "", cost,
+   xlab = "Target [%]", ylab = "Solution cost [$]")
 ```
-**Figure S5**: Time to solution comparisons between SYMPHONY and Gurobi across targets, number of features and number of planning units.
+**Figure S5**: Cost profile for Marxan using Simulated Annealing across targets, number of features and number of planning units.
 
 \newpage
 ## Figure S6
 ```{r FigS6, echo = FALSE}
-pp(rr_marxan_compl %>% filter(solver == "marxan") %>% group_by(target, n_features, n_pu) %>% 
-     summarise(time_perc = mean(time_perc)), "", time_perc / 100,
-   xlab = "Target [%]", ylab = "Multiplier for Marxan to baseline time of Gurobi")
+pp(rr_marxan_compl %>% filter(solver == "rsymphony"), "", time_perc / 100,
+   xlab = "Target [%]", ylab = "Multiplier for SYMPHONY to baseline time of Gurobi")
 ```
-**Figure S6**: Time to solution comparisons between Marxan using Simulated Annealing and Gurobi across targets, number of features and number of planning units.
+**Figure S6**: Time to solution comparisons between SYMPHONY and Gurobi across targets, number of features and number of planning units.
 
 \newpage
 ## Figure S7
 ```{r FigS7, echo = FALSE}
-pp(rr_marxan_compl %>% filter(solver == "gurobi"), "", time,
-   xlab = "Target [%]", ylab = "Time to solution [seconds]")
+pp(rr_marxan_compl %>% filter(solver == "marxan") %>% group_by(target, n_features, n_pu) %>% 
+     summarise(time_perc = mean(time_perc)), "", time_perc / 100,
+   xlab = "Target [%]", ylab = "Multiplier for Marxan to baseline time of Gurobi")
 ```
-**Figure S7**: Time to solution profile for Gurobi solver across targets, number of features and number of planning units.
+**Figure S7**: Time to solution comparisons between Marxan using Simulated Annealing and Gurobi across targets, number of features and number of planning units.
 
 \newpage
 ## Figure S8
 ```{r FigS8, echo = FALSE}
-pp(rr_marxan_compl %>% filter(solver == "rsymphony"), "", time,
+pp(rr_marxan_compl %>% filter(solver == "gurobi"), "", time,
    xlab = "Target [%]", ylab = "Time to solution [seconds]")
 ```
-**Figure S8**: Time to solution profile for SYMPHONY solver across targets, number of features and number of planning units.
+**Figure S8**: Time to solution profile for Gurobi solver across targets, number of features and number of planning units.
 
 \newpage
 ## Figure S9
 ```{r FigS9, echo = FALSE}
+pp(rr_marxan_compl %>% filter(solver == "rsymphony"), "", time,
+   xlab = "Target [%]", ylab = "Time to solution [seconds]")
+```
+**Figure S9**: Time to solution profile for SYMPHONY solver across targets, number of features and number of planning units.
+
+\newpage
+## Figure S10
+```{r FigS10, echo = FALSE}
 pp(rr_marxan_compl %>% filter(solver == "marxan") %>% group_by(target, n_features, n_pu) %>% 
      summarise(time = mean(time)), "", time,
    xlab = "Target [%]", ylab = "Time to solution [seconds]")
 ```
-**Figure S9**: Time to solution profile for Marxan using Simulated Annealing across targets, number of features and number of planning units.
+**Figure S10**: Time to solution profile for Marxan using Simulated Annealing across targets, number of features and number of planning units.
 
-
-## Figure S10
-
-```{r FigS10, echo = FALSE}
+## Figure S11
+```{r FigS11, echo = FALSE}
 knitr::include_graphics("Figure S10.png")
 ```
-
-**Figure S10**: Compactness of solutions. Shown are the solutions for a 10% target. The numbers represent BLM values.
+**Figure S11**: Compactness of solutions. Shown are the solutions for a 10% target. The numbers represent BLM values.
 
 
