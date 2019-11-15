@@ -337,9 +337,16 @@ dev.off()
 # ##### 
 # Study area
 # ##### 
-ne_land <- read_sf("data/ne-land.gpkg") %>% st_geometry()
-ne_country_lines <- read_sf("data/ne-country-lines.gpkg") %>% st_geometry()
-ne_state_lines <- read_sf("data/ne-state-lines.gpkg") %>% st_geometry()
+CA_land <- readRDS("data/gadm36_CAN_1_sf.rds")
+CA_land_red <- CA_land %>% filter(NAME_1 == "British Columbia")
+
+US_land <- readRDS("data/gadm36_USA_1_sf.rds")
+US_land_red <- US_land %>% filter(NAME_1 == "Washington" | NAME_1 == "Oregon")
+
+ne_land <- rbind(CA_land_red, US_land_red) %>% st_geometry()
+ne_lines <- st_cast(ne_land, "MULTILINESTRING")
+# ne_country_lines <- read_sf("data/ne-country-lines.gpkg") %>% st_geometry()
+# ne_state_lines <- read_sf("data/ne-state-lines.gpkg") %>% st_geometry()
 
 study_area <- raster("data/study_area.tif")
  
@@ -351,27 +358,12 @@ text_col <- "black"
 
 # prepare vector layers
 land <- st_transform(ne_land, crs = crs)
+plot_line <- st_transform(ne_lines, crs = crs)
 country <- st_transform(ne_country_lines, crs = crs)
 state <- st_transform(ne_state_lines, crs = crs)
 
 palette <- c("Greens", "Blues", "YlOrRd", "Reds")
 
-add_legend <- function(title, palette, bump = 0, low_high = FALSE, 
-                       text_col = "black") {
-  if (low_high) {
-    labs <- list(at = c(0, 1), labels = c("1", "52"), line = -1,
-                 cex.axis = 1 * scl, fg = NA, col.axis = text_col)
-    
-  } else {
-    labs <- list(at = c(0, 1), labels = NA, line = 0, fg = NA)
-  }
-  fields::image.plot(zlim = c(0, 1), legend.only = TRUE, col = palette(256),
-                     legend.width = 1, horizontal = TRUE,
-                     smallplot = c(0.12, 0.28, 0.05 + bump, 0.075 + bump),
-                     axis.args = labs,
-                     legend.args = list(text = proper(title), side = 1,
-                                        col = text_col))
-}
 
 
 ##Plotting
@@ -381,17 +373,16 @@ here("figures/", paste0("Figure 0", ".png")) %>%
 
 pal <- brewer.pal(5, "Set2")[1:5]
 pal <- colorRampPalette(pal)
-par(mar = c(0.1, 0.1, 0.1, 0.1), oma = c(0,0,0,0), bg = "white")
+par(mar = c(0.1, 0.1, 0.1, 0.1), oma = c(0,0,0,0), bg = "light blue")
 plot(land, col = "grey85", border = NA, xlim = e[1:2], ylim = e[3:4])
 
-plot(study_area, add = TRUE, col = pal(256), legend = FALSE, 
+plot(study_area, add = TRUE, col = "green4", legend = FALSE, 
      maxpixels = ncell(study_area))
-add_legend("", pal, legend_offsets[3], low_high = lh[ii],
-           text_col = text_col)
 
 # boundaries
-plot(state, col = "black", lwd = 0.5, lty = 1, add = TRUE)
-plot(country, col = "black", lwd = 1, add = TRUE)
+plot(plot_line, col = "black", lwd = 1, add = TRUE)
+# plot(state, col = "black", lwd = 0.5, lty = 1, add = TRUE)
+# plot(country, col = "black", lwd = 1, add = TRUE)
 
 # title
 # plot bounds
@@ -400,100 +391,17 @@ xwidth <- usr[2] - usr[1]
 yheight <- usr[4] - usr[3]
 # labels
 
-text(x = usr[1] + 0.6 * xwidth, y = usr[3] + 0.2 * yheight,
-     labels = "Study area", pos = 4, font = 1, cex = 1.2, col = text_col)
+# text(x = usr[1] + 0.6 * xwidth, y = usr[3] + 0.2 * yheight,
+#      labels = "Study area", pos = 4, font = 1, cex = 1.2, col = text_col)
 
-text(x = usr[1] + 0.65 * xwidth, y = usr[3] + 0.9 * yheight,
+text(x = usr[1] + 0.75 * xwidth, y = usr[3] + 0.9 * yheight,
      labels = "British Columbia", pos = 4, font = 1, cex = 1.2, col = text_col)
 
-text(x = usr[1] + 0.65 * xwidth, y = usr[3] + 0.4 * yheight,
+text(x = usr[1] + 0.75 * xwidth, y = usr[3] + 0.4 * yheight,
      labels = "Washington", pos = 4, font = 1, cex = 1.2, col = text_col)
 
-text(x = usr[1] + 0.65 * xwidth, y = usr[3] + 0.08 * yheight,
+text(x = usr[1] + 0.75 * xwidth, y = usr[3] + 0.08 * yheight,
      labels = "Oregon", pos = 4, font = 1, cex = 1.2, col = text_col)
 
+dev.off()
 
-# ##### 
-# ## BLM cost (not used)
-# 
-# # cost and occupancy
-# nplcc_file <- here("data", "nplcc_cost_occupancy.zip")
-# if (!file.exists(nplcc_file)) {
-#   "https://s3.amazonaws.com/marxan-vs-ilp/nplcc_cost_occupancy.zip" %>% 
-#     download.file(destfile = nplcc_file)
-# }
-# cost_occ <- read_csv(nplcc_file, 
-#                      col_types = cols(.default = col_double(),
-#                                       pu = col_integer()))
-# 
-# # split out cost and occupancy
-# cost <- select(cost_occ, id = pu, cost) %>% 
-#   arrange(id)
-# 
-# gr_rast <- stack(list.files(here("output_blm/gurobi/"), full.names = TRUE))
-# sy_rast <- stack(list.files(here("output_blm/rsymphony/"), full.names = TRUE))
-# ma_rast <- stack(list.files(here("output_blm/marxan//"), pattern = "*.tif", full.names = TRUE))
-# 
-# 
-# tt <- here("data", "nplcc_planning-units.tif") %>% 
-#   raster()
-# 
-# tt[] <- 1:ncell(tt)
-# 
-# lala <- stack(tt,gr_rast, sy_rast, ma_rast)
-# 
-# 
-# 
-# e <- extent(560000, 560000 + 22500, 5300000 - 22500, 5300000)
-# comb <- crop(lala, e)
-# 
-# cost_ss <- cost[cost$id %in% comb[[1]][], ] %>% 
-#   arrange(id)
-# 
-# 
-# comb_df <- as.data.frame(comb)
-# names(comb_df)[1] <- "id"
-# 
-# comb_df <- inner_join(comb_df, cost_ss, by = "id")
-# 
-# cost_df <- comb_df[,2:(ncol(comb_df)-1)] * comb_df$cost
-# 
-# cost_sums <- colSums(cost_df, na.rm = TRUE)
-# 
-# out <- tibble(id = rep(1:45,3),
-#               solver = sapply(strsplit(names(cost_sums), "_target"), "[", 1),
-#               target = as.numeric(substr(sapply(strsplit(names(cost_sums), "target."), "[", 2), 1, 3)),
-#               blm = sapply(strsplit(sapply(strsplit(names(cost_sums), "blm."), "[", 2), "_spf"), "[", 1),
-#               cost = as.numeric(cost_sums))
-# 
-# 
-# out_gur <- out %>% filter(solver == 'gurobi') %>% mutate(cost_gur = cost) %>% select(id, cost_gur)
-# 
-# out <- inner_join(out, out_gur, by = "id")
-# 
-# 
-# rl_filt <- out %>%
-#   mutate(deltaC = (cost - cost_gur)/cost_gur * 100,
-#          deltaT = cost - cost_gur
-#   )
-# 
-# 
-# (fig6 <- ggplot(data=rl_filt, aes(x = target, y = deltaC, color = solver, shape = as.factor(blm))) +
-#     # ggtitle("Marxan - ILP: # features = 72; # pu's = 148510; # iterations = 1E+08 \n mean time + mean cost for Marxan") +
-#     ylab("Delta cost [%] with optimal cost as baseline") +
-#     geom_line(aes(color=solver))+
-#     geom_point(aes(color=solver)) +
-#     # geom_text(aes(label = ifelse(deltaT > 1000000,
-#     #                              as.character(format(round(deltaT/1000000,0), big.mark=",")),
-#     #                              ifelse(solver == "gurobi", format(round(cost/1000000,0), big.mark=","),""))), hjust = 0.5, vjust = -0.7) +
-#     scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target) +
-#     theme_bw() +
-#     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
-#     theme(legend.position = c(0.1, 0.7)) +
-#     theme(legend.background = element_rect(fill="white",
-#                                            size=0.5, linetype="solid", 
-#                                            colour ="black"))
-#   
-# )
-# 
-# ggsave(here("figures","Figure 6.png"), fig6)
