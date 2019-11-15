@@ -164,7 +164,7 @@ text(x = usr[1] + 0.75 * xwidth, y = usr[3] + 0.08 * yheight,
 pp(rr_marxan_compl %>% filter(solver == "marxan" & marxan_iterations > 1E+07 & spf > 1 & spf < 125), "", cost_perc,
    xlab = "Target [%]", ylab = "Cost increase using SA compared to ILP [%]")
 ```
-**Figure S2**: Percent cost increase of SA solutions compared to ILP solutions, across targets, number of features and number of planning units. Simulated annealing (i.e. Marxan) parameters used are: number of iterations > 100,000; species penalty factor 5 or 25. 
+**Figure S2**: Percent cost increase of SA solutions compared to ILP solutions, across targets, number of features and number of planning units. Simulated annealing (i.e. Marxan) parameters used are: number of iterations > 100,000; species penalty factor 5 or 25. Not all Marxan scenarios generated yielded feasible solutions (where all targets were met), which is why e.g. there is only one observation for 37,128 planning units and 10 features.
 
 \newpage
 ## Figure S3
