@@ -1,0 +1,49 @@
+---
+title: "Integer programming formulation"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  rmarkdown::pdf_document:
+    toc: false
+    keep_tex: true
+    fig_caption: yes
+    includes:
+      in_header: preamble.tex
+fontsize: 11pt
+documentclass: article
+subparagraph: true
+---
+
+We will begin by recalling fundamental concepts in systematic conservation planning. Conservation features describe the biodiversity units (e.g. species, communities, habitat types) that are used to inform protected area establishment. Planning units describe the candidate areas for protected area establishment (e.g. cadastral units). Each planning unit contains an amount of each feature (e.g. presence/absence, number of individuals). A prioritisation describes a candidate set of planning units selected for protected establishment. Each feature has a representation target indicating the minimum amount of each feature that ideally should be held in the prioritisation (e.g. 50 presences, 200 individuals). Furthermore, prioritisations that are costly to implement are not desirable, and prioritisations that are excessively spatially fragmented are not desirable. Thus we wish to identify a prioritisation that meets the representation targets for all of the conservation features, with minimal acquisition costs and spatial fragmentation.
+
+We will now express these concepts using mathematical notation. Let $I$ denote the set of conservation features (indexed by $i$), and $T_i$ denote the conservation target for each feature $i \in I$. Let $J$ denote the set of planning units (indexed by $j$), and $C_j$ denote the cost of establishing planning unit $j$ as a protected area. Let $R_{ij}$ denote the amount of each feature in each planning unit (e.g. presence or absence of each feature in each planning unit). To describe the spatial arrangement of planning units, let $E_j$ denote the total amount of exposed boundary length of each planning unit. Also let $L_{jk}$ denote the total amount of shared boundary length between each planning unit $j \in J$ and $k \in J$ (where $j$ and $k$ are not equal). Furthermore, to describe our aversion to spatial fragmentation, let $p$ denote a spatial fragmentation penalty value (equivalent to the "boundary length modifier" parameter in the Marxan decision support tool). Higher penalty values indicate a preference for less fragmented prioritisations.
+
+We will consider the following example to explain the spatial $E_j$ and $L_{jk}$ variables in further detail. Imagine three square planning units ($P_1$, $P_2$, $P_3$) that are each 100 $\times$ 100 m in size and arranged left to right in a line. These planning units each have a total amount of exposed boundary length of 400 m (i.e. $E_1 = 400$, $E_2 = 400$, $E_3 = 400$). Additionally, $P_1$ and $P_2$ have a shared boundary length of 100 m (i.e. $L_{1,2} = 100$, $L_{2,1} = 100$); $P_2$ and $P_3$ have a shared boundary length of 100 m (i.e. $L_{2,3} = 100$, $L_{3,2} = 100$); and $P_1$ and $P_3$ have a shared shared boundary length of 0 m (i.e. $L_{1,3} = 0$ and $L_{3, 1} = 0$). Note that planning units do not share any boundary lengths with themselves (i.e. $L_{1,1} = 0$, $L_{2,2} = 0$, $L_{3,3} = 0$).
+
+We use the binary decision variables $X_j$ for planning units $j \in J$ (eqn 1a), and $Y_{jk}$ for planning units $j \in J$ and $k \in J$ (eqn 1b).
+
+\begin{align*}
+X_j &=
+\begin{cases}
+1, \text{ if $j$ selected for prioritisation}, \tag{eqn 1a} \\
+0, \text{ else }
+\end{cases} \\
+Y_{jk} &=
+\begin{cases}
+1, \text{ if both $j$ and $k$ selected for prioritisation}, \tag{eqn 1b} \\
+0, \text{ else } \\
+\end{cases}
+\end{align*}
+
+The reserve selection problem can be formulated following:
+
+\begin{align*}
+\text{minimize} & \sum_{j \in J} X_j C_j + \left( \sum_{j \in J} p E_{j} \right) - \left( 0.5  \times \sum_{j \in J} \sum_{k \in J} p Y_{jk} L_{jk} \right) \tag{eqn 2a} \\
+\text{subject to} & \sum_j^J R_{ij} \geq T_i & \forall i \in I  \tag{eqn 2b} \\
+& Y_{jk} - X_j \leq 0 & \forall j \in J \tag{eqn 2c} \\
+& Y_{jk} - X_k \leq 0 & \forall k \in J \tag{eqn 2d} \\
+& Y_{jk} - X_j - X_k \geq -1 & \forall j \in J, k \in K \tag{eqn 2e} \\
+& X_j \in \{ 0, 1 \} & \forall j \in J \tag{eqn 2f} \\
+& Y_{jk} \in \{ 0, 1 \} & \forall j \in J, k  \in K \tag{eqn 2g} \\
+\end{align*}
+
+The objective function (eqn 2a) is the combined cost of establishing the selected planning units as protected areas and the penalized amount of exposed boundary length associated with the selected planning units. Constraints (eqn 2b) ensure that the conservation targets ($T_i$) are met for all conservation features. Additionally, constraints (eqns 2c--2e) ensure that the $Y_{jk}$ variables are calculated are correctly (as outlined in Beyer _et al._ 2016). Finally, constraints (eqns 2f and 2g) ensure that the decision variables $X_j$ and $Y_{jk}$ contain zeros or ones.
