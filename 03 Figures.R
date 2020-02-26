@@ -7,6 +7,7 @@ library(tidyverse)
 library(prioritizr)
 library(sf)
 library(RColorBrewer)
+library(gridExtra)
 
 pkg_list <- c("raster", "prioritizr", "marxan", "uuid",  "here", "tidyverse")
 select <- dplyr::select
@@ -41,8 +42,8 @@ runs_gur <- runs_long %>% filter(solver == 'gurobi') %>% mutate(cost_gur = cost,
 runs_long <- inner_join(runs_long, runs_gur, by = "run_id")
 
 
-rl_filt <- runs_long %>% filter(n_features == 72 & n_pu == 148510 & 
-                                  (solver != 'marxan' | (marxan_iterations > 1E+07 & spf > 1))
+rl_filt <- runs_long %>% filter(n_features == 72 & n_pu == 37128 & 
+                                  (solver != 'marxan' | (marxan_iterations == 1E+07 & spf > 1))
 ) %>% group_by(solver, target) %>% 
   summarise(time = mean(time, na.rm = T),
             cost = mean(cost, na.rm = T),
@@ -72,7 +73,8 @@ rl_filt <- rl_filt %>%
     theme(legend.background = element_rect(fill="white",
                                            size=0.5, linetype="solid", 
                                            colour ="black")) +
-    geom_text(x=0.9, y=12, label="a)", size = 6)
+    geom_text(x=0.9, y=20, label="a)", size = 6) +
+    ylim(0,55)
   
 )
 
@@ -85,18 +87,19 @@ rl_filt <- rl_filt %>%
     geom_text(aes(label = ifelse(solver == "gurobi", "",as.character(paste0(round(deltaTM/100,0),""))), hjust = 0.5, vjust = -0.7)) +
     
     scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target) +
-    scale_y_continuous("Differnce to fastest solver [multiplier of best time]", labels = as.character(c(0, 200, 400, 600)), breaks = c(0, 20000, 40000, 60000)) +
+    scale_y_continuous("Differnce to fastest solver [multiplier of best time]", labels = as.character(c(0, 100, 200)), breaks = c(0, 10000, 20000)) +
     theme_bw()+
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
     theme(legend.position = 'none') + #c(0.1, 0.85)) +
     # theme(legend.background = element_rect(fill="white",
     #                                        size=0.5, linetype="solid", 
     #                                        colour ="black")) +
-    geom_text(x=0.9, y=40000, label="b)", size = 6)
+    geom_text(x=0.9, y=6000, label="b)", size = 6) +
+    ylim(0, 20000)
   
 )
 
-ff <-grid.arrange(fig1, fig2, nrow = 2)
+ff <-grid.arrange(fig1, fig2, nrow = 2, padding = 0)
 
 ggsave(here("figures","Figure 1.png"), fig1)
 ggsave(here("figures","Figure 2.png"), fig2)

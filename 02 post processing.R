@@ -87,13 +87,13 @@ rl_filt <- runs_long %>%
 
 
 # Explore budget
-g1 <- raster(here("output/gurobi/", "gurobi_target-0.3_features-72_pu-148510.tif"))
+g1 <- raster(here("output/gurobi/", "gurobi_target-0.3_features-72_pu-37128.tif"))
 
 runs_long <- read_csv(here("output", "ilp-comparison-runs.csv"))
 runs_long <- runs_long %>% mutate(solv_it = ifelse(!is.na(marxan_iterations), paste(solver, marxan_iterations, sep="_"), solver))
 
-rl_filt <- runs_long %>% filter(n_features == 72 & n_pu == 148510 & 
-                                  (solver != 'marxan' | (marxan_iterations > 1E+07 & spf > 1))
+rl_filt <- runs_long %>% filter(n_features == 72 & n_pu == 37128 & 
+                                  (solver != 'marxan' | (marxan_iterations == 1E+07 & spf > 1))
 ) %>% group_by(solver, target) %>% 
   summarise(time = mean(time, na.rm = T),
             cost = mean(cost, na.rm = T))
@@ -146,7 +146,7 @@ pus <- here("data", "nplcc_planning-units.tif") %>%
 ilp_gap <- 0.001
 target = 0.3
 n_features = 72
-n_pu = 148510
+n_pu = 37128
 
 # convert vector of selected units to raster using template
 solution_to_raster <- function(x, y) {
@@ -189,7 +189,7 @@ p1 <- problem(cost_ss,
 # gurobi
 s_gur1 <- p1 %>% 
   add_gurobi_solver(gap = ilp_gap) %>% 
-  prioritizr_timed()
+  prioritizr_timed(force = TRUE)
 
 g1 <- solution_to_raster(s_gur1$result, pus)
 
@@ -201,16 +201,16 @@ p <- problem(cost_ss,
              rij = rij, 
              cost_column = "cost") %>% 
   add_min_set_objective() %>%
-  add_relative_targets(0.31350) %>%
+  add_relative_targets(0.31908) %>%
   add_binary_decisions()
 # gurobi
 s_gur <- p %>% 
   add_gurobi_solver(gap = ilp_gap) %>% 
-  prioritizr_timed()
+  prioritizr_timed(force = TRUE)
 
 g2 <- solution_to_raster(s_gur$result, pus)
 
-(cost_gurobi <- attr(s_gur$result, "objective"))
+(cost_gurobi <- attr(s_gur$result, "objective")) - budget
 
 # out.df <- data.frame(target = numeric(), cost = numeric())
 # for(ii in 1:20){
