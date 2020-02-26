@@ -173,7 +173,7 @@ pp(rr_marxan_compl %>% filter(solver == "marxan") %>% group_by(target, n_feature
 runs_long <- read_csv(here("output_blm/", "ilp-comparison-runs.csv"))
 runs_long <- runs_long %>% mutate(solv_it = ifelse(!is.na(marxan_iterations), paste(solver, marxan_iterations, sep="_"), solver)) 
 
-runs_gur <- runs_long %>% filter(solver == 'gurobi') %>% mutate(cost_gur = cost, time_gur = time) %>% select(run_id, cost_gur, time_gur)
+runs_gur <- runs_long %>% filter(solver == 'gurobi') %>% mutate(cost_gur = dollar_cost, time_gur = time) %>% select(run_id, cost_gur, time_gur)
 
 runs_long <- inner_join(runs_long, runs_gur, by = "run_id")
 
@@ -185,8 +185,8 @@ runs_long <- inner_join(runs_long, runs_gur, by = "run_id")
 #            cost_gur = mean(cost_gur, na.rm = T))
 
 rl_filt <- runs_long %>%
- mutate(deltaC = (cost - cost_gur)/cost_gur * 100,
-        deltaT = cost - cost_gur,
+ mutate(deltaC = (dollar_cost - cost_gur)/cost_gur * 100,
+        deltaT = dollar_cost - cost_gur,
         deltaTM = (time - time_gur)/time_gur * 100,
         deltaTT = time - time_gur
  )

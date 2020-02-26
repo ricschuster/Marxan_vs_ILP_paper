@@ -252,3 +252,56 @@ out_tb <- tibble(species = tot_amount$species, tot_amount = tot_amount$tot_amoun
 
 
 
+#####################
+#### BLM with cost, but best solution only
+
+nn <- cost_occ
+nn[cost_occ$pu] <- cost_occ$cost
+
+setwd(here("output_blm/gurobi/"))
+gr <- stack(list.files())
+gr_cst <- gr * nn
+gr_df <- as.data.frame(gr_cst)
+gr_cs <- colSums(gr_df, na.rm = TRUE)
+names(gr_cs) <- names(gr)
+
+gr_out_df <- data.frame(solver = str_split(names(gr_cs), pattern = "_", simplify = TRUE)[,1],
+                     target = as.numeric(str_split(str_split(names(gr_cs), pattern = "target.", simplify = TRUE)[,2],
+                                                   pattern = "_featu", simplify = TRUE)[,1]),
+                     blm = as.numeric(str_split(names(gr_cs), pattern = "blm.", simplify = TRUE)[,2]),
+                     dollar_cost = as.vector(gr_cs))
+
+
+
+
+setwd(here("output_blm/rsymphony"))
+sy <- stack(list.files())
+sy_cst <- sy * nn
+sy_df <- as.data.frame(sy_cst)
+sy_cs <- colSums(sy_df, na.rm = TRUE)
+names(sy_cs) <- names(sy)
+sy_out_df <- data.frame(solver = str_split(names(sy_cs), pattern = "_", simplify = TRUE)[,1],
+                        target = as.numeric(str_split(str_split(names(sy_cs), pattern = "target.", simplify = TRUE)[,2],
+                                                      pattern = "_featu", simplify = TRUE)[,1]),
+                        blm = as.numeric(str_split(names(sy_cs), pattern = "blm.", simplify = TRUE)[,2]),
+                        dollar_cost = as.vector(sy_cs))
+
+
+
+setwd(here("output_blm2/marxan"))
+ma <- stack(list.files(pattern = ".tif$"))
+ma_cst <- ma * nn
+ma_df <- as.data.frame(ma_cst)
+ma_cs <- colSums(ma_df, na.rm = TRUE)
+names(ma_cs) <- names(ma)
+
+ma_out_df <- data.frame(solver = str_split(names(ma_cs), pattern = "_", simplify = TRUE)[,1],
+                        target = as.numeric(str_split(str_split(names(ma_cs), pattern = "target.", simplify = TRUE)[,2],
+                                                      pattern = "_featu", simplify = TRUE)[,1]),
+                        blm = as.numeric(str_split(str_split(names(ma_cs), pattern = "blm.", simplify = TRUE)[,2], 
+                                                   pattern = "_spf", simplify = TRUE)[,1]),
+                        dollar_cost = as.vector(ma_cs))
+
+
+out_df <- rbind(gr_out_df, sy_out_df, ma_out_df)
+out_df %>% arrange(solver, blm, solver) %>% write_csv(here("output_blm", "out_df_dollar_cost.csv"))
