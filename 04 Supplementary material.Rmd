@@ -110,8 +110,36 @@ plot_line <- st_transform(ne_lines, crs = crs)
 Supporting Information for 
 
 #### Integer Linear programming outperforms simulated annealing for solving conservation planning problems 
-
+  
 Richard Schuster, Jeffrey O. Hanson, Matt Strimas-Mackey, Joseph R. Bennett 
+
+\newpage
+## Appendix S2
+
+### Marxan Terminology
+
+Description of some terms used in Marxan analysis. Text marginally modified from the Marxan Manual (v1.8.2): Ball, I. R., & Possingham, H. P. (2000). MARXAN (V1. 8.2). Marine Reserve Design Using Spatially Explicit Annealing, a Manual.
+
+#### Calibration
+
+The objective of calibration is to ensure that the set of solutions Marxan produces are close to the “lowest cost” or optimum. Common user settings to explore in calibration are setting the 'Species Penalty Factor', 'Number of Iterations', and 'Boundary Length Modifier'. Those user settings, however, can have a large impact on solution efficiency (Fischer and Church, 2005). 
+
+Fischer, D. T., & Church, R. L. (2005). The SITES reserve selection system: a critical review. Environmental Modeling & Assessment, 10(3), 215-228.
+
+#### Species Penalty Functions
+
+The Penalty component of the Marxan objective function is the penalty given to a reserve system for not adequately representing conservation features. It is based on the principle that if a conservation feature is below its target representation level, then the penalty should be an approximation of the cost of raising that conservation feature up to its target representation level.
+
+#### Number of Iterations
+
+The number of iterations set has a substantial bearing on how long each run takes. In general, the number of iterations determines how close Marxan gets to the optimal solution (or at least a very good solution). The number should start high (e.g. 1000000) and then be increased (e.g. 10 million or more is commonly applied on large scale datasets) until there is no substantial improvement in score as iterations continues to increase. At some point, the extra time required by a higher number of iterations will be better spent doing more runs than spending a long time on each run.  Choose an acceptable trade-off between solution efficiency (score, or number of planning units) and execution time (number of iterations).
+
+#### Boundary Length Modifiers
+
+The variable, ‘BLM’ (Boundary Length Modifier), is used to determine how much emphasis should be placed on minimising the overall reserve system boundary length. Minimising this length will produce a more compact reserve system, which may be desirable for a variety of pragmatic reasons. Emphasising the importance of a compact network will mean that your targets are likely to be met in a smaller number of large reserves, generally resulting in an overall larger and more expensive reserve system. Thus, the BLM works counter to the other major goal of Marxan, to minimise the overall cost of the solution. BLM can be thought of as a relative sliding scale, ranging from cheaper fragmented solutions (low BLM) to a more compact expensive ones (high BLM). Because this will have a large influence on the final solutions, some work is needed to ensure an appropriate value (or range of values) is found. 
+
+
+
 
 
 \newpage
