@@ -12,7 +12,7 @@ select <- dplyr::select
 walk(list.files("R", full.names = TRUE), source)
 prioritizr_timed <- add_timer(prioritizr::solve)
 # parallelization
-n_cores <- 24
+n_cores <- 10
 cl <- makeCluster(n_cores)
 registerDoParallel(cl)
 
@@ -220,15 +220,15 @@ runs_g <- runs %>%
   mutate(solver = "gurobi") %>% 
   select(run_id, solver, target, n_features, n_pu, species, gurobi) %>% 
   unnest()
-runs_s <- runs %>% 
-  mutate(solver = "rsymphony") %>% 
-  select(run_id, solver, target, n_features, n_pu, species, rsymphony) %>% 
-  unnest()
+# runs_s <- runs %>% 
+#   mutate(solver = "rsymphony") %>% 
+#   select(run_id, solver, target, n_features, n_pu, species, rsymphony) %>% 
+#   unnest()
 runs_c <- runs %>% 
   mutate(solver = "cplex") %>% 
   select(run_id, solver, target, n_features, n_pu, species, marxan) %>% 
   unnest()
-runs_long <- bind_rows(runs_g, runs_s, runs_c)
+runs_long <- bind_rows(runs_g, runs_c)
 write_csv(runs_long, here("output2", "ilp-comparison-runs2.csv"))
 
 # clean up
