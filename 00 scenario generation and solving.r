@@ -58,9 +58,10 @@ pus <- here("data", "nplcc_planning-units.tif") %>%
 #   spf = 5^(0:3)
 # )
 runs <- expand.grid(target = seq(0.1, 0.9, by = 0.1),
-                     n_features = round(seq(10, 72, length.out = 5)),
-                     n_pu = round(nrow(cost) / 4^(4:2)))# %>%
-  # add marxan specific parameters
+                    n_features = round(seq(10, 72, length.out = 5)),
+                    n_pu = c(750000, nrow(cost)))# %>%
+                    # n_pu = round(nrow(cost) / 4^(4:2)))# %>%
+# add marxan specific parameters
   # mutate(marxan = list(marxan_runs),
   #        run_id = row_number()) %>%
   # select(run_id, everything())
@@ -162,7 +163,7 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
     add_binary_decisions()
   # gurobi
   s_gur <- p %>% 
-    add_gurobi_solver(gap = ilp_gap) %>% 
+    add_gurobi_solver(gap = ilp_gap, threads = 10) %>% 
     prioritizr_timed(force = TRUE)
   # solution summary
   cost_gurobi <- attr(s_gur$result, "objective")
@@ -178,7 +179,7 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
   
   # cplex
   s_cpl <- p %>% 
-    add_cplex_solver(gap = ilp_gap) %>% 
+    add_cplex_solver(gap = ilp_gap, threads = 10) %>% 
     prioritizr_timed(force = TRUE)
   # solution summary
   cost_cplex <- attr(s_cpl$result, "objective")
@@ -218,15 +219,11 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
 # unnest
 runs_g <- runs %>% 
   mutate(solver = "gurobi") %>% 
-  select(run_id, solver, target, n_features, n_pu, species, gurobi) %>% 
+  select(solver, target, n_features, n_pu, species, gurobi) %>% 
   unnest()
-# runs_s <- runs %>% 
-#   mutate(solver = "rsymphony") %>% 
-#   select(run_id, solver, target, n_features, n_pu, species, rsymphony) %>% 
-#   unnest()
 runs_c <- runs %>% 
   mutate(solver = "cplex") %>% 
-  select(run_id, solver, target, n_features, n_pu, species, marxan) %>% 
+  select(solver, target, n_features, n_pu, species, cplex) %>% 
   unnest()
 runs_long <- bind_rows(runs_g, runs_c)
 write_csv(runs_long, here("output2", "ilp-comparison-runs2.csv"))

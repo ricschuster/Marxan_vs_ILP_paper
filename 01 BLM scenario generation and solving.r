@@ -197,11 +197,11 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
 # unnest
 runs_g <- runs %>% 
   mutate(solver = "gurobi") %>% 
-  select(run_id, solver, target, n_features, n_pu, species, gurobi) %>% 
+  select(solver, target, n_features, n_pu, species, gurobi) %>% 
   unnest()
 runs_c <- runs %>% 
   mutate(solver = "cplex") %>% 
-  select(run_id, solver, target, n_features, n_pu, species, cplex) %>% 
+  select(solver, target, n_features, n_pu, species, cplex) %>% 
   unnest()
 # runs_m <- runs %>% 
 #   mutate(solver = "marxan") %>% 

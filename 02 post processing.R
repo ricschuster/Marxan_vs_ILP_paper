@@ -13,7 +13,37 @@ prioritizr_timed <- add_timer(prioritizr::solve)
 
 
 # Post-processing
-runs_long <- read_csv(here("output", "ilp-comparison-runs.csv"))
+runs_long <- read_csv(here("output2", "ilp-comparison-runs.csv"))
+
+runs <- runs_long %>% filter(solver == 'gurobi') %>% mutate(cost_gur = cost, time_gur = time) %>% 
+  select(target, n_features, n_pu, cost_gur, time_gur) %>%
+  mutate(cost_cpl = runs_long %>% filter(solver == 'cplex') %>% pull(cost),
+         time_cpl = runs_long %>% filter(solver == 'cplex') %>% pull(time)) %>%
+  mutate(delta_cost = (cost_cpl - cost_gur) / cost_gur * 100,
+         delta_time = (time_cpl - time_gur) / time_gur * 100)
+
+(fig1 <- ggplot(data = runs, aes(x = target, y = delta_time, color = as.factor(n_pu), shape = as.factor(n_features))) +
+    ggtitle("Gurobi - CPLEX comparison no boundary") +
+    ylab("Deviation from Gurobi time [%] (< 0 == faster)") +
+    geom_line(aes(color=as.factor(n_pu)))+
+    geom_point(aes(color=as.factor(n_pu)), size = 3) +
+    scale_shape_discrete(name  ="n features") + 
+    # geom_text(aes(label = ifelse(deltaT > 1000000,
+    #                              as.character(format(round(deltaT/1000000,0), big.mark=",")),
+    #                              ifelse(solver == "gurobi", format(round(cost/1000000,0), big.mark=","),""))), hjust = 0.5, vjust = -0.7) +
+    scale_x_continuous("Target [%]", labels = as.character(runs$target), breaks = runs$target) +
+    theme_bw() +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+    theme(legend.position = c(0.1, 0.6)) +
+    theme(legend.background = element_rect(fill="white",
+                                           size=0.5, linetype="solid", 
+                                           colour ="black")) +
+    geom_hline(yintercept=0, linetype="dashed")
+
+)
+
+ggsave(here("figures","Benchmark_figure1.png"), fig1)
+
 runs_long <- runs_long %>% mutate(solv_it = ifelse(!is.na(marxan_iterations), paste(solver, marxan_iterations, sep="_"), solver)) %>%
   filter(run_id < 200)
 
