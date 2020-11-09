@@ -13,7 +13,7 @@ prioritizr_timed <- add_timer(prioritizr::solve)
 
 
 # Post-processing
-runs_long <- read_csv(here("output2", "ilp-comparison-runs.csv"))
+runs_long <- read_csv(here("output2", "ilp-comparison-runs2.csv"))
 
 runs <- runs_long %>% filter(solver == 'gurobi') %>% mutate(cost_gur = cost, time_gur = time) %>% 
   select(target, n_features, n_pu, cost_gur, time_gur) %>%
@@ -43,6 +43,140 @@ runs <- runs_long %>% filter(solver == 'gurobi') %>% mutate(cost_gur = cost, tim
 )
 
 ggsave(here("figures","Benchmark_figure1.png"), fig1)
+
+
+runs_blm <- read_csv(here("output_blm_c", "ilp-comparison-runs_no_marx.csv"))
+runsb <- runs_blm %>% filter(solver == 'gurobi') %>% mutate(cost_gur = cost, time_gur = time) %>% 
+  select(target, n_features, n_pu, blm, cost_gur, time_gur) %>%
+  mutate(cost_cpl = runs_blm %>% filter(solver == 'cplex') %>% pull(cost),
+         time_cpl = runs_blm %>% filter(solver == 'cplex') %>% pull(time)) %>%
+  mutate(delta_cost = (cost_cpl - cost_gur) / cost_gur * 100,
+         delta_time = (time_cpl - time_gur) / time_gur * 100)
+
+
+(fig2 <- ggplot(data = runsb, aes(x = target, y = delta_time, color = as.factor(blm))) +
+    ggtitle("Gurobi - CPLEX comparison no boundary") +
+    ylab("Deviation from Gurobi time [%] (< 0 == faster)") +
+    geom_line(aes(color=as.factor(blm)))+
+    # geom_text(aes(label = ifelse(deltaT > 1000000,
+    #                              as.character(format(round(deltaT/1000000,0), big.mark=",")),
+    #                              ifelse(solver == "gurobi", format(round(cost/1000000,0), big.mark=","),""))), hjust = 0.5, vjust = -0.7) +
+    scale_x_continuous("Target [%]", labels = as.character(runs$target), breaks = runs$target) +
+    theme_bw() +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+    theme(legend.position = c(0.9, 0.8)) +
+    theme(legend.background = element_rect(fill="white",
+                                           size=0.5, linetype="solid", 
+                                           colour ="black")) +
+    geom_hline(yintercept=0, linetype="dashed")
+  
+)
+
+ggsave(here("figures","Benchmark_figure2.png"), fig2)
+
+
+#############################################################################
+# BLM comparison figure
+
+# natural earth political boundaries
+# natural earth political boundaries
+ne_land <- read_sf("data/ne-land.gpkg") %>% st_geometry()
+ne_country_lines <- read_sf("data/ne-country-lines.gpkg") %>% st_geometry()
+ne_state_lines <- read_sf("data/ne-state-lines.gpkg") %>% st_geometry()
+
+gr_rast <- stack(list.files(here("output_blm_c/gurobi/"), full.names = TRUE))
+cp_rast <- stack(list.files(here("output_blm_c/cplex/"), full.names = TRUE))
+
+land <- st_transform(ne_land, crs = proj4string(gr_rast))
+country <- st_transform(ne_country_lines, crs = proj4string(gr_rast))
+state <- st_transform(ne_state_lines, crs = proj4string(gr_rast))
+
+e <- extent(560000, 560000 + 22500, 5300000 - 22500, 5300000)
+gr_rast <- crop(gr_rast, e)
+cp_rast <- crop(cp_rast, e)
+
+mybb <- cbind(x=c(560000, 560000 + 22500, 560000 + 22500, 560000), 
+              y=c(5300000 - 22500, 5300000 - 22500, 5300000, 5300000))
+mybb <- SpatialPolygons(list(Polygons(list(Polygon(mybb)),"1")), proj4string=CRS(proj4string(gr_rast)))
+
+
+here("figures", paste0("Benchmark_figure3", ".png")) %>%
+  png(width = 2000, height = 3000, res = 300)
+
+ll <- list()
+for(ii in 1:5){
+  ll <- c(ll, gr_rast[[ii]], cp_rast[[ii]])
+  
+}
+out_r <- stack(ll)
+
+par(mfrow=c(5,2))
+par(mar = c(0.1, 0.1, 0.1, 0.1), oma = c(0,3.5,1.5,0), bg = "white")
+
+# titl <- c("Gurobi", "Symphony", "Marxan",
+#           rep("", 12))
+# ylab <- c(0.1, "", "",
+#           1, "", "",
+#           10, "", "",
+#           100, "", "",
+#           1000, "", "")
+
+
+for (ii in 1:nlayers(out_r)) {
+  # print map
+  plot(land, col = "white", border = NA, xlim = e[1:2], ylim = e[3:4])
+  #title(titl[ii], cex.main = 1.5)
+  palette <- c("Greens", "Blues", "YlOrRd", "Reds")
+  pal <- brewer.pal(9, palette[1])[2:9]
+  pal <- colorRampPalette(pal)
+  #pal <- colorQuantile(pal, values(abd_plot[[f1[ii]]]), n = 8, #probs = seq(0, 1, length.out = n + 1),
+  #              na.color = "#808080", alpha = FALSE, reverse = FALSE)
+  plot(out_r[[ii]], add = TRUE, col = pal(256), legend = FALSE, 
+       maxpixels = ncell(out_r))
+  # if(lh[[ii]]){
+  #   add_legend("", pal, legend_offsets[3], low_high = lh[ii],
+  #              text_col = text_col)
+  # }
+  
+  # boundaries
+  plot(mybb, lwd = 1, add = TRUE)
+  plot(state, col = "black", lwd = 0.5, lty = 1, add = TRUE)
+  plot(country, col = "black", lwd = 1, add = TRUE)
+  
+  # # title
+  # # plot bounds
+  usr <- par("usr")
+  xwidth <- usr[2] - usr[1]
+  yheight <- usr[4] - usr[3]
+  # labels
+  # text(x = usr[1] - 0.1 * xwidth, y = usr[3] + 0.5 * yheight,
+  # labels = ylab[ii], pos = 4, font = 1, cex = 1.5 , col = "black")
+  # 
+  # text(x = usr[1] + 0.1 * xwidth, y = usr[3] + 0.4 * yheight,
+  #      labels = pll[ii], pos = 4, font = 1, cex = 1.5 * scl, col = text_col)
+  # 
+  #rasterImage(logo,usr[1] + 0.01 * xwidth, usr[3] + 0.03 * yheight,
+  #            usr[1] + 0.38 * xwidth, usr[3] + 0.09 * yheight)
+  
+}
+
+mtext("Gurobi", side=3, at = 0.25, cex=1, col="black", outer=TRUE) 
+mtext("CPLEX", side=3, at = 0.75, cex=1, col="black", outer=TRUE) 
+
+mtext("0.1", side=2, at = 0.9, cex=1, col="black", outer=TRUE, las = 1) 
+mtext("1", side=2, at = 0.7, cex=1, col="black", outer=TRUE, las = 1) 
+mtext("10", side=2, at = 0.5, cex=1, col="black", outer=TRUE, las = 1) 
+mtext("100", side=2, at = 0.3, cex=1, col="black", outer=TRUE, las = 1) 
+mtext("1,000", side=2, at = 0.1, cex=1, col="black", outer=TRUE, las = 1) 
+
+dev.off()
+############################################################################# 
+
+
+
+
+
+
 
 runs_long <- runs_long %>% mutate(solv_it = ifelse(!is.na(marxan_iterations), paste(solver, marxan_iterations, sep="_"), solver)) %>%
   filter(run_id < 200)

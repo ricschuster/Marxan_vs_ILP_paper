@@ -62,9 +62,9 @@ runs <- expand.grid(target = seq(0.1, 0.9, by = 0.1),
                     n_pu = 50625,
                     blm = c(0.1, 1, 10, 100, 1000))# %>%
   # add marxan specific parameters
-  mutate(marxan = list(marxan_runs),
-         run_id = 300 + row_number()) %>%
-  select(run_id, everything())
+  # mutate(marxan = list(marxan_runs),
+  #        run_id = 300 + row_number()) %>%
+  # select(run_id, everything())
 
 # fixed run parameters
 ilp_gap <- 0.001
@@ -88,7 +88,7 @@ cplex_dir <- here("output_blm_c", "cplex")
 unlink(cplex_dir, recursive = TRUE)
 dir.create(cplex_dir)
 runs_dir <- here("output_blm_c", "runs")
-#unlink(runs_dir, recursive = TRUE)
+unlink(runs_dir, recursive = TRUE)
 dir.create(runs_dir)
 
 # convert vector of selected units to raster using template
@@ -180,7 +180,7 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
                          cost = cost_cplex, 
                          time = s_cpl$time[["elapsed"]]))
   # save solution
-  s_cpl <- "cplex_target-{target}_features-{n_features}_pu-{n_pu}.tif" %>% 
+  s_cpl <- "cplex_target-{target}_features-{n_features}_pu-{n_pu}_blm-{blm}.tif" %>% 
     str_glue_data(r, .) %>% 
     file.path(cplex_dir, .) %>% 
     writeRaster(solution_to_raster(s_cpl$result, pus), .)
@@ -197,11 +197,11 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
 # unnest
 runs_g <- runs %>% 
   mutate(solver = "gurobi") %>% 
-  select(solver, target, n_features, n_pu, species, gurobi) %>% 
+  select(solver, target, n_features, n_pu, blm, species, gurobi) %>% 
   unnest()
 runs_c <- runs %>% 
   mutate(solver = "cplex") %>% 
-  select(solver, target, n_features, n_pu, species, cplex) %>% 
+  select(solver, target, n_features, n_pu, blm, species, cplex) %>% 
   unnest()
 # runs_m <- runs %>% 
 #   mutate(solver = "marxan") %>% 
