@@ -156,7 +156,7 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
     add_boundary_penalties(penalty = r$blm, edge_factor = 0.5, data = bnd_mat)
   # gurobi
   s_gur <- p %>% 
-    add_gurobi_solver(gap = ilp_gap) %>%
+    add_gurobi_solver(gap = ilp_gap, threads = 40) %>%
     prioritizr_timed(force = TRUE)
   # solution summary
   cost_gurobi <- attr(s_gur$result, "objective")
@@ -172,7 +172,7 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
   
   # cbc
   s_cpl <- p %>% 
-    add_cbc_solver(gap = ilp_gap) %>% 
+    add_cbc_solver(gap = ilp_gap, threads = 40, time_limit = 1000) %>% 
     prioritizr_timed(force = TRUE)
   # solution summary
   cost_cbc <- attr(s_cpl$result, "objective")
