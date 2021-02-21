@@ -59,12 +59,12 @@ pus <- here("data", "nplcc_planning-units.tif") %>%
 # )
 runs <- expand.grid(target = seq(0.1, 0.9, by = 0.1),
                     n_features = round(seq(10, 72, length.out = 5)),
-                    n_pu = c(750000, nrow(cost)))# %>%
-                    # n_pu = round(nrow(cost) / 4^(4:2)))# %>%
+                    # n_pu = c(750000, nrow(cost)))# %>%
+                    n_pu = round(nrow(cost) / 4^(4:2)))# %>%
 # add marxan specific parameters
-  # mutate(marxan = list(marxan_runs),
-  #        run_id = row_number()) %>%
-  # select(run_id, everything())
+# mutate(marxan = list(marxan_runs),
+#        run_id = row_number()) %>%
+# select(run_id, everything())
 
 # # for testing
 # marxan_runs <- expand.grid(marxan_iterations = c(1e5, 1e6), spf = c(5, 25))
@@ -91,19 +91,19 @@ sysname <- tolower(Sys.info()[["sysname"]])
 # iterate over runs ----
 
 # clean up old files
-gurobi_dir <- here("output2", "gurobi")
+gurobi_dir <- here("output_cbc", "gurobi")
 #unlink(gurobi_dir, recursive = TRUE)
 dir.create(gurobi_dir)
-rsymphony_dir <- here("output2", "rsymphony")
+rsymphony_dir <- here("output_cbc", "rsymphony")
 #unlink(rsymphony_dir, recursive = TRUE)
 dir.create(rsymphony_dir)
-cplex_dir <- here("output2", "cplex")
+cbc_dir <- here("output_cbc", "cbc")
 #unlink(rsymphony_dir, recursive = TRUE)
-dir.create(cplex_dir)
-# marxan_dir <- here("output2", "marxan")
+dir.create(cbc_dir)
+# marxan_dir <- here("output_cbc", "marxan")
 # #unlink(marxan_dir, recursive = TRUE)
 # dir.create(marxan_dir)
-runs_dir <- here("output2", "runs")
+runs_dir <- here("output_cbc", "runs")
 #unlink(runs_dir, recursive = TRUE)
 dir.create(runs_dir)
 
@@ -163,7 +163,7 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
     add_binary_decisions()
   # gurobi
   s_gur <- p %>% 
-    add_gurobi_solver(gap = ilp_gap, threads = 10) %>% 
+    add_gurobi_solver(gap = ilp_gap, threads = 1, presolve = -1) %>% 
     prioritizr_timed(force = TRUE)
   # solution summary
   cost_gurobi <- attr(s_gur$result, "objective")
@@ -177,43 +177,43 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
     writeRaster(solution_to_raster(s_gur$result, pus), .)
   rm(s_gur)
   
-  # cplex
+  # cbc
   s_cpl <- p %>% 
-    add_cplex_solver(gap = ilp_gap, threads = 10) %>% 
+    add_cbc_solver(gap = ilp_gap, threads = 1) %>% 
     prioritizr_timed(force = TRUE)
   # solution summary
-  cost_cplex <- attr(s_cpl$result, "objective")
-  r$cplex <- list(tibble(n_solutions = 1,
-                          cost = cost_cplex, 
-                          time = s_cpl$time[["elapsed"]]))
+  cost_cbc <- attr(s_cpl$result, "objective")
+  r$cbc <- list(tibble(n_solutions = 1,
+                       cost = cost_cbc, 
+                       time = s_cpl$time[["elapsed"]]))
   # save solution
-  s_cpl <- "cplex_target-{target}_features-{n_features}_pu-{n_pu}.tif" %>% 
+  s_cpl <- "cbc_target-{target}_features-{n_features}_pu-{n_pu}.tif" %>% 
     str_glue_data(r, .) %>% 
-    file.path(cplex_dir, .) %>% 
+    file.path(cbc_dir, .) %>% 
     writeRaster(solution_to_raster(s_cpl$result, pus), .)
   rm(s_cpl)
   
   # # symphony
-  # s_sym <- p %>% 
-  #   add_rsymphony_solver(gap = ilp_gap * cost_gurobi) %>% 
+  # s_sym <- p %>%
+  #   add_rsymphony_solver(gap = ilp_gap * cost_gurobi) %>%
   #   prioritizr_timed(force = TRUE)
   # # solution summary
   # r$rsymphony <- list(tibble(n_solutions = 1,
-  #                            cost = attr(s_sym$result, "objective"), 
+  #                            cost = attr(s_sym$result, "objective"),
   #                            time = s_sym$time[["elapsed"]]))
   # # save solution
-  # s_sym <- "rsymphony_target-{target}_features-{n_features}_pu-{n_pu}.tif" %>% 
-  #   str_glue_data(r, .) %>% 
-  #   file.path(rsymphony_dir, .) %>% 
+  # s_sym <- "rsymphony_target-{target}_features-{n_features}_pu-{n_pu}.tif" %>%
+  #   str_glue_data(r, .) %>%
+  #   file.path(rsymphony_dir, .) %>%
   #   writeRaster(solution_to_raster(s_sym$result, pus), .)
   # rm(s_sym)
-  # 
- # save this iteration in case of crashing
+  
+  # save this iteration in case of crashing
   str_glue_data(r, "run-", run,
                 "_target-{target}_features-{n_features}_pu-{n_pu}.rds") %>%
     file.path(runs_dir, .) %>%
     saveRDS(r, .)
-   r
+  r
 }
 
 # unnest
@@ -222,11 +222,15 @@ runs_g <- runs %>%
   select(solver, target, n_features, n_pu, species, gurobi) %>% 
   unnest()
 runs_c <- runs %>% 
-  mutate(solver = "cplex") %>% 
-  select(solver, target, n_features, n_pu, species, cplex) %>% 
+  mutate(solver = "cbc") %>% 
+  select(solver, target, n_features, n_pu, species, cbc) %>% 
   unnest()
+# runs_s <- runs %>% 
+#   mutate(solver = "rsymphony") %>% 
+#   select(solver, target, n_features, n_pu, species, rsymphony) %>% 
+#   unnest()
 runs_long <- bind_rows(runs_g, runs_c)
-write_csv(runs_long, here("output2", "ilp-comparison-runs2.csv"))
+write_csv(runs_long, here("output_cbc", "ilp-comparison-runs2.csv"))
 
 # clean up
 stopCluster(cl)

@@ -81,13 +81,13 @@ random_subset <- TRUE
 # iterate over runs ----
 
 # clean up old files
-gurobi_dir <- here("output_blm_c", "gurobi")
+gurobi_dir <- here("output_blm_cbc", "gurobi")
 unlink(gurobi_dir, recursive = TRUE)
 dir.create(gurobi_dir)
-cplex_dir <- here("output_blm_c", "cplex")
-unlink(cplex_dir, recursive = TRUE)
-dir.create(cplex_dir)
-runs_dir <- here("output_blm_c", "runs")
+cbc_dir <- here("output_blm_cbc", "cbc")
+unlink(cbc_dir, recursive = TRUE)
+dir.create(cbc_dir)
+runs_dir <- here("output_blm_cbc", "runs")
 unlink(runs_dir, recursive = TRUE)
 dir.create(runs_dir)
 
@@ -170,19 +170,19 @@ runs <- foreach(run = seq_len(nrow(runs)), .combine = bind_rows) %do% {
     writeRaster(solution_to_raster(s_gur$result, pus), overwrite = TRUE, .)
   rm(s_gur)
   
-  # cplex
+  # cbc
   s_cpl <- p %>% 
-    add_cplex_solver(gap = ilp_gap) %>% 
+    add_cbc_solver(gap = ilp_gap) %>% 
     prioritizr_timed(force = TRUE)
   # solution summary
-  cost_cplex <- attr(s_cpl$result, "objective")
-  r$cplex <- list(tibble(n_solutions = 1,
-                         cost = cost_cplex, 
+  cost_cbc <- attr(s_cpl$result, "objective")
+  r$cbc <- list(tibble(n_solutions = 1,
+                         cost = cost_cbc, 
                          time = s_cpl$time[["elapsed"]]))
   # save solution
-  s_cpl <- "cplex_target-{target}_features-{n_features}_pu-{n_pu}_blm-{blm}.tif" %>% 
+  s_cpl <- "cbc_target-{target}_features-{n_features}_pu-{n_pu}_blm-{blm}.tif" %>% 
     str_glue_data(r, .) %>% 
-    file.path(cplex_dir, .) %>% 
+    file.path(cbc_dir, .) %>% 
     writeRaster(solution_to_raster(s_cpl$result, pus), .)
   rm(s_cpl)
   
@@ -200,8 +200,8 @@ runs_g <- runs %>%
   select(solver, target, n_features, n_pu, blm, species, gurobi) %>% 
   unnest()
 runs_c <- runs %>% 
-  mutate(solver = "cplex") %>% 
-  select(solver, target, n_features, n_pu, blm, species, cplex) %>% 
+  mutate(solver = "cbc") %>% 
+  select(solver, target, n_features, n_pu, blm, species, cbc) %>% 
   unnest()
 # runs_m <- runs %>% 
 #   mutate(solver = "marxan") %>% 
@@ -209,7 +209,7 @@ runs_c <- runs %>%
 #   unnest()
 runs_long <- bind_rows(runs_g, runs_c)
 # runs_long <- bind_rows(runs_g, runs_s, runs_m)
-write_csv(runs_long, here("output_blm_c", "ilp-comparison-runs_no_marx.csv"))
+write_csv(runs_long, here("output_blm_cbc", "ilp-comparison-runs_no_marx.csv"))
 
 # clean up
 stopCluster(cl)
