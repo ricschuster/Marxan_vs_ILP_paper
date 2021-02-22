@@ -173,10 +173,12 @@ pp(rr_marxan_compl %>% filter(solver == "marxan") %>% group_by(target, n_feature
 ### BLM
 
 # Post-processing BLM results
-runs_long <- read_csv(here("output_blm/", "ilp-comparison-runs.csv"))
-runs_long <- runs_long %>% mutate(solv_it = ifelse(!is.na(marxan_iterations), paste(solver, marxan_iterations, sep="_"), solver)) 
+runs_long <- read_csv(here("output_blm_cbc/", "ilp-comparison-runs_blm_cbc.csv")) %>%
+  mutate(run_id = rep(1:(length(solver)/2), 2))
+# runs_long <- runs_long %>% mutate(solv_it = ifelse(!is.na(marxan_iterations), paste(solver, marxan_iterations, sep="_"), solver)) 
 
-runs_cbc <- runs_long %>% filter(solver == 'gurobi') %>% mutate(cost_cbc = dollar_cost, time_cbc = time) %>% select(run_id, cost_cbc, time_cbc)
+runs_cbc <- runs_long %>% filter(solver == 'cbc') %>% 
+  mutate(cost_cbc = cost, time_cbc = time) %>% select(run_id, cost_cbc, time_cbc)
 
 runs_long <- inner_join(runs_long, runs_cbc, by = "run_id")
 
@@ -188,8 +190,8 @@ runs_long <- inner_join(runs_long, runs_cbc, by = "run_id")
 #            cost_cbc = mean(cost_cbc, na.rm = T))
 
 rl_filt <- runs_long %>%
- mutate(deltaC = (dollar_cost - cost_cbc)/cost_cbc * 100,
-        deltaT = dollar_cost - cost_cbc,
+ mutate(deltaC = (cost - cost_cbc)/cost_cbc * 100,
+        deltaT = cost - cost_cbc,
         deltaTM = (time - time_cbc)/time_cbc * 100,
         deltaTT = time - time_cbc
  )
