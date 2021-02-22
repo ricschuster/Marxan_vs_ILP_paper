@@ -209,11 +209,11 @@ rl_filt <- runs_long %>%
    scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target) +
    theme_bw() +
    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
-   theme(legend.position = c(0.1, 0.6)) +
+   theme(legend.position = c(0.5, 0.4)) +
    theme(legend.background = element_rect(fill="white",
                                           size=0.5, linetype="solid", 
                                           colour ="black")) +
-    geom_text(x=0.9, y=80, label="a)", size = 6, color = "black")
+    geom_text(x=0.9, y= -0.2, label="a)", size = 6, color = "black")
  
 )
 
@@ -226,14 +226,14 @@ rl_filt <- runs_long %>%
    # geom_text(aes(label = ifelse(solver == "gurobi", "",as.character(paste0(round(deltaTM/100,0),""))), hjust = 0.5, vjust = -0.7)) +
    
    scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target) +
-   scale_y_continuous("Differnce to fastest solver [multiplier of best time]", labels = as.character(c(0, 50, 100, 150, 200)), breaks = c(0, 5000, 10000, 15000, 20000)) +
+   scale_y_continuous("Differnce to fastest solver [% of CBC time]") +
    theme_bw()+
    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
    theme(legend.position = "none") + #c(0.1, 0.8)) +
    # theme(legend.background = element_rect(fill="white",
    #                                        size=0.5, linetype="solid", 
    #                                        colour ="black"))
-   geom_text(x=0.9, y=12000, label="b)", size = 6, color = "black")
+   geom_text(x=0.9, y= 200, label="b)", size = 6, color = "black")
 )
 
 ff2 <-grid.arrange(fig3, fig4, nrow = 2)
@@ -241,7 +241,7 @@ ff2 <-grid.arrange(fig3, fig4, nrow = 2)
 ggsave(here("figures","Figure 3.png"), fig3)
 ggsave(here("figures","Figure 4.png"), fig4)
 
-ggsave(here("figures","Figure 2c.png"), ff2)
+ggsave(here("figures","Figure cbc_bpf.png"), ff2)
 
 
 # natural earth political boundaries
@@ -250,9 +250,9 @@ ne_land <- read_sf("data/ne-land.gpkg") %>% st_geometry()
 ne_country_lines <- read_sf("data/ne-country-lines.gpkg") %>% st_geometry()
 ne_state_lines <- read_sf("data/ne-state-lines.gpkg") %>% st_geometry()
 
-gr_rast <- stack(list.files(here("output_blm/gurobi/"), full.names = TRUE))
-sy_rast <- stack(list.files(here("output_blm/rsymphony/"), full.names = TRUE))
-ma_rast <- stack(list.files(here("output_blm/marxan//"), pattern = "*.tif", full.names = TRUE))
+gr_rast <- stack(list.files(here("output_blm_cbc/gurobi/"), full.names = TRUE))
+cb_rast <- stack(list.files(here("output_blm_cbc/cbc/"), full.names = TRUE))
+# ma_rast <- stack(list.files(here("output_blm/marxan//"), pattern = "*.tif", full.names = TRUE))
 
 
 land <- st_transform(ne_land, crs = proj4string(gr_rast))
@@ -261,28 +261,28 @@ state <- st_transform(ne_state_lines, crs = proj4string(gr_rast))
 
 e <- extent(560000, 560000 + 22500, 5300000 - 22500, 5300000)
 gr_rast <- crop(gr_rast, e)
-sy_rast <- crop(sy_rast, e)
-ma_rast <- crop(ma_rast, e)
+cb_rast <- crop(cb_rast, e)
+# ma_rast <- crop(ma_rast, e)
 
 mybb <- cbind(x=c(560000, 560000 + 22500, 560000 + 22500, 560000), 
               y=c(5300000 - 22500, 5300000 - 22500, 5300000, 5300000))
 mybb <- SpatialPolygons(list(Polygons(list(Polygon(mybb)),"1")), proj4string=CRS(proj4string(gr_rast)))
 
 # BLM comparison figure
-here("Figures", paste0("Figure S10", ".png")) %>%
+here("Figures", paste0("Figure map CBC_BPF", ".png")) %>%
   png(width = 2000, height = 3000, res = 300)
 
 ll <- list()
 for(ii in 1:5){
-  ll <- c(ll, gr_rast[[ii]], sy_rast[[ii]], ma_rast[[ii]])
+  ll <- c(ll, gr_rast[[ii]], cb_rast[[ii]])
   
 }
 out_r <- stack(ll)
 
-par(mfrow=c(5,3))
+par(mfrow=c(5,2))
 par(mar = c(0.1, 0.1, 0.1, 0.1), oma = c(0,3.5,1.5,0), bg = "white")
 
-# titl <- c("Gurobi", "Symphony", "Marxan",
+# titl <- c("Gurobi", "cbmphony", "Marxan",
 #           rep("", 12))
 # ylab <- c(0.1, "", "",
 #           1, "", "",
@@ -329,9 +329,9 @@ for (ii in 1:nlayers(out_r)) {
   
 }
 
-mtext("Gurobi", side=3, at = 0.16, cex=1, col="black", outer=TRUE) 
-mtext("Symphony", side=3, at = 0.5, cex=1, col="black", outer=TRUE) 
-mtext("Marxan", side=3, at = 0.825, cex=1, col="black", outer=TRUE) 
+mtext("Gurobi", side=3, at = 0.25, cex=1, col="black", outer=TRUE) 
+mtext("CBC", side=3, at = 0.75, cex=1, col="black", outer=TRUE) 
+# mtext("Marxan", side=3, at = 0.825, cex=1, col="black", outer=TRUE) 
 
 mtext("0.1", side=2, at = 0.9, cex=1, col="black", outer=TRUE, las = 1) 
 mtext("1", side=2, at = 0.7, cex=1, col="black", outer=TRUE, las = 1) 

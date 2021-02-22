@@ -58,9 +58,10 @@ pus <- here("data", "nplcc_planning-units.tif") %>%
 #   spf = 5^(0:3)
 # )
 runs <- expand.grid(target = seq(0.1, 0.9, by = 0.1),
-                    n_features = round(seq(10, 72, length.out = 5)),
+                    n_features = round(seq(10, 72, length.out = 3)),
                     # n_pu = c(750000, nrow(cost)))# %>%
-                    n_pu = round(nrow(cost) / 4^(4:2)))# %>%
+                    p_pu = c(10000, 50000, 100000, 250000, 500000, 1000000))
+                    # n_pu = round(nrow(cost) / 4^(4:2)))# %>%
 # add marxan specific parameters
 # mutate(marxan = list(marxan_runs),
 #        run_id = row_number()) %>%
