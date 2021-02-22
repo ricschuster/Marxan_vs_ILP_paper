@@ -413,3 +413,79 @@ text(x = usr[1] + 0.75 * xwidth, y = usr[3] + 0.08 * yheight,
 
 dev.off()
 
+
+
+###############################################
+## pu range
+###############################################
+
+runs_long <- read_csv(here("output_cbc/", "ilp-comparison-runs2.csv")) %>%
+  mutate(run_id = rep(1:(length(solver)/2), 2))
+
+# runs_long <- runs_long %>% mutate(solv_it = ifelse(!is.na(marxan_iterations), paste(solver, marxan_iterations, sep="_"), solver)) %>%
+#   filter(run_id < 200)
+
+runs_cbc <- runs_long %>% filter(solver == 'cbc') %>% mutate(cost_cbc = cost, time_cbc = time) %>% 
+  select(run_id, cost_cbc, time_cbc)
+
+runs_long <- inner_join(runs_long, runs_cbc, by = "run_id")
+
+
+# rl_filt <- runs_long %>% 
+#   # filter(n_features == 72 & n_pu == 148510) %>%
+#   group_by(solver, target) %>% 
+#   summarise(time = mean(time, na.rm = T),
+#             cost = mean(cost, na.rm = T),
+#             time_cbc = mean(time_cbc, na.rm = T),
+#             cost_cbc = mean(cost_cbc, na.rm = T))
+
+rl_filt <- runs_long %>%
+  filter(n_features == 72) %>%
+  mutate(deltaC = (cost - cost_cbc)/cost_cbc * 100,
+         deltaT = cost - cost_cbc,
+         deltaTM = (time - time_cbc)/time_cbc * 100,
+         deltaTT = time - time_cbc,
+         pus = as.character(n_pu)
+  )
+
+
+(fig1 <- ggplot(data=rl_filt, aes(x = target, y = deltaC, color = solver, shape = as.factor(rl_filt$pus))) +
+    # ggtitle("Marxan - ILP: # features = 72; # pu's = 148510; # iterations = 1E+08 \n mean time + mean cost for Marxan") +
+    ylab("Delta cost [%] with optimal cost as baseline") +
+    geom_line(aes(color=solver))+
+    geom_point(aes(color=solver)) +
+    scale_shape_discrete(name  ="pu's") + 
+    scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target) +
+    theme_bw() +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+    theme(legend.position = c(0.9, 0.7)) +
+    theme(legend.background = element_rect(fill="white",
+                                           size=0.5, linetype="solid", 
+                                           colour ="black")) +
+    geom_text(x=0.9, y= 0.2, label="a)", size = 6, color = "black")
+  
+)
+
+
+(fig2 <- ggplot(data=rl_filt, aes(x = target, y = deltaTM, color = solver, shape = as.factor(rl_filt$pus))) +
+    # ggtitle("Marxan - ILP: # features = 72; # pu's = 148510; # iterations = 1E+08 \n mean time + mean cost for Marxan") +
+    #ylab("Mean processing time [sec]") +
+    geom_line(aes(color=solver))+
+    geom_point(aes(color=solver)) +
+    # geom_text(aes(label = ifelse(solver == "gurobi", "",as.character(paste0(round(deltaTM/100,0),""))), hjust = 0.5, vjust = -0.7)) +
+    
+    scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target) +
+    scale_y_continuous("Differnce to fastest solver [% of CBC time]") +
+    theme_bw()+
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+    theme(legend.position = "none") + #c(0.1, 0.8)) +
+    # theme(legend.background = element_rect(fill="white",
+    #                                        size=0.5, linetype="solid", 
+    #                                        colour ="black"))
+    geom_text(x=0.9, y= 200, label="b)", size = 6, color = "black")
+  
+)
+
+ff <-grid.arrange(fig1, fig2, nrow = 2, padding = 0)
+
+ggsave(here("figures","Figure pu range.png"), ff)
