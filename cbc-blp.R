@@ -25,10 +25,10 @@ solve_with_lexo_boundary_penalties <- function(x, data = NULL, gap = 0.1) {
   data <- Matrix::drop0(data)
   data@x <- scales::rescale(data@x, to = c(0.01, 100))
   # solve problem and find optimal solution for main objective
-  x$solver$parameters$set("gap", 0)
+  x$solver$parameters$set("gap", gap)
   x$solver$parameters$set("verbose", 0L)
   sol1 <- prioritizr::solve(x, force = TRUE)  # compute optimal objective value
-  opt_obj <- prioritizr::eval_cost_summary(x, sol1)$cost
+  opt_obj <- sum(x$data$cost$cost * sol1$solution_1, na.rm = T)
   # create new problem with for generating boundary length problem
   ## copy problem
   x2 <- prioritizr::pproto(NULL, x)
@@ -92,7 +92,7 @@ solve_with_lexo_boundary_penalties <- function(x, data = NULL, gap = 0.1) {
     row_ub = row_ub)
   ## create parameters
   p <- list(
-    LOG = "0",
+    LOG = "1",
     PRESOLVE = "On",
     RATIO = as.character(gap),
     SEC = as.character(.Machine$integer.max),
