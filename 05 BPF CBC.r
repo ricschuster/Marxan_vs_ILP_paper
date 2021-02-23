@@ -4,17 +4,23 @@ library(marxan)
 library(foreach)
 library(doParallel)
 library(uuid)
+library(prioritizr)
+library(rcbc)
+library(plyr)
+library(dplyr)
 library(here)
 library(tidyverse)
 
 pkg_list <- c("raster", "prioritizr", "marxan", "uuid",  "here", "tidyverse")
 select <- dplyr::select
+here <- here::here
 walk(list.files("R", full.names = TRUE), source)
+source("cbc-blp.R")
 prioritizr_timed <- add_timer(prioritizr::solve)
 # parallelization
-n_cores <- 12
-cl <- makeCluster(n_cores)
-registerDoParallel(cl)
+# n_cores <- 12
+# cl <- makeCluster(n_cores)
+# registerDoParallel(cl)
 
 # load nplcc data ----
 

@@ -1,9 +1,6 @@
 # Initialization
 ## load packages
-library(prioritizr)
-library(rcbc)
-library(plyr)
-library(dplyr)
+
 
 ## define functions
 solve_with_lexo_boundary_penalties <- function(x, data = NULL, gap = 0.1) {
@@ -117,51 +114,51 @@ solve_with_lexo_boundary_penalties <- function(x, data = NULL, gap = 0.1) {
   out
 }
 
-# Preliminary processing
-# import data
-data(sim_pu_raster, sim_features)
-
-# Main processing
-## define problem
-p <-
-  problem(sim_pu_raster, sim_features) %>%
-  add_min_set_objective() %>%
-  add_relative_targets(0.1) %>%
-  add_binary_decisions() %>%
-  add_cbc_solver(gap = 0.1, verbose = FALSE)
-
-# generate solution without boundary penalties
-t1 <- system.time({
-  s1 <-
-    p %>%
-    solve()
-})
-
-## generate solution with standard boundary penalties
-t2 <- system.time({
-  s2 <-
-    p %>%
-    add_boundary_penalties(penalty = 20) %>%
-    solve()
-})
-
-## generate solution with lexicographic boundary penalties
-t3 <- system.time({
-  s3 <-
-    p %>%
-    solve_with_lexo_boundary_penalties(gap = 0.1)
-})
-
-# Exports
-## print times
-message("time with no penalties")
-print(t1)
-
-message("time with standard penalties")
-print(t2)
-
-message("time with hierarchical penalties")
-print(t3)
-
-## plot solutions
-plot(stack(s1, s2, s3))
+# # Preliminary processing
+# # import data
+# data(sim_pu_raster, sim_features)
+# 
+# # Main processing
+# ## define problem
+# p <-
+#   problem(sim_pu_raster, sim_features) %>%
+#   add_min_set_objective() %>%
+#   add_relative_targets(0.1) %>%
+#   add_binary_decisions() %>%
+#   add_cbc_solver(gap = 0.1, verbose = FALSE)
+# 
+# # generate solution without boundary penalties
+# t1 <- system.time({
+#   s1 <-
+#     p %>%
+#     solve()
+# })
+# 
+# ## generate solution with standard boundary penalties
+# t2 <- system.time({
+#   s2 <-
+#     p %>%
+#     add_boundary_penalties(penalty = 20) %>%
+#     solve()
+# })
+# 
+# ## generate solution with lexicographic boundary penalties
+# t3 <- system.time({
+#   s3 <-
+#     p %>%
+#     solve_with_lexo_boundary_penalties(gap = 0.1)
+# })
+# 
+# # Exports
+# ## print times
+# message("time with no penalties")
+# print(t1)
+# 
+# message("time with standard penalties")
+# print(t2)
+# 
+# message("time with hierarchical penalties")
+# print(t3)
+# 
+# ## plot solutions
+# plot(stack(s1, s2, s3))
