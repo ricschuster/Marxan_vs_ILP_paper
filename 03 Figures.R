@@ -458,7 +458,7 @@ rl_filt <- runs_long %>%
     scale_x_continuous("Target [%]", labels = as.character(rl_filt$target * 100), breaks = rl_filt$target) +
     theme_bw() +
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
-    theme(legend.position = c(0.9, 0.7)) +
+    theme(legend.position = c(0.9, 0.6)) +
     theme(legend.background = element_rect(fill="white",
                                            size=0.5, linetype="solid", 
                                            colour ="black")) +
