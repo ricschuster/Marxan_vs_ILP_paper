@@ -160,6 +160,7 @@ p <- problem(cost_ss,
   add_cbc_solver(gap = 0.1, threads = 40, verbose = T)
 # add_boundary_penalties(penalty = r$blm, edge_factor = 0.5, data = bnd_mat)
 
+m <- (sum(c(p$planning_unit_costs())) / sum(bnd_mat@x)) + 1e-5
 
 # generate solution without boundary penalties
 t1 <- system.time({
